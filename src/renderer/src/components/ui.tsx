@@ -1,3 +1,4 @@
+import { t as tr } from '../lib/i18n'
 import type React from 'react'
 import { useEffect, useRef, useState, type ClipboardEvent, type ReactNode } from 'react'
 import type { ApplyResult, CheckStatus } from '@shared/api'
@@ -19,8 +20,8 @@ export function Toggle(props: {
       />
       <span className="toggle-switch" />
       <span className="toggle-text">
-        <b>{props.label}</b>
-        {props.hint && <span>{props.hint}</span>}
+        <b>{tr(props.label)}</b>
+        {props.hint && <span>{tr(props.hint)}</span>}
       </span>
     </label>
   )
@@ -35,7 +36,7 @@ const chipText: Record<CheckStatus, string> = {
 }
 
 export function StatusChip({ status, text }: { status: CheckStatus; text?: string }): ReactNode {
-  return <span className={`chip ${status}`}>{text ?? chipText[status]}</span>
+  return <span className={`chip ${status}`}>{tr(text ?? chipText[status])}</span>
 }
 
 export function Modal(props: { children: ReactNode; onClose: () => void; wide?: boolean }): ReactNode {
@@ -49,7 +50,7 @@ export function Modal(props: { children: ReactNode; onClose: () => void; wide?: 
   return (
     <div className="modal-back" onMouseDown={(e) => e.target === e.currentTarget && props.onClose()}>
       <div className={`modal${props.wide ? ' wide' : ''}`} role="dialog" aria-modal="true">
-        {props.children}
+        {tr(props.children)}
       </div>
     </div>
   )
@@ -64,14 +65,12 @@ export function Confirm(props: {
 }): ReactNode {
   return (
     <Modal onClose={props.onCancel}>
-      <h2>{props.title}</h2>
-      <div>{props.children}</div>
+      <h2>{tr(props.title)}</h2>
+      <div>{tr(props.children)}</div>
       <div className="modal-actions">
-        <button className="btn ghost" onClick={props.onCancel}>
-          Cancel
-        </button>
+        <button className="btn ghost" onClick={props.onCancel}>{tr("Cancel")}</button>
         <button className="btn primary" onClick={props.onConfirm} autoFocus>
-          {props.confirmLabel}
+          {tr(props.confirmLabel)}
         </button>
       </div>
     </Modal>
@@ -84,9 +83,9 @@ export function ResultNotice({ result, onDismiss }: { result: ApplyResult | null
   return (
     <div className={`notice ${kind}`} role="status">
       <div className="row between">
-        <b>{result.summary}</b>
+        <b>{tr(result.summary)}</b>
         {onDismiss && (
-          <button className="icon-btn" onClick={onDismiss} aria-label="Dismiss">
+          <button className="icon-btn" onClick={onDismiss} aria-label={tr("Dismiss")}>
             ✕
           </button>
         )}
@@ -94,7 +93,7 @@ export function ResultNotice({ result, onDismiss }: { result: ApplyResult | null
       {result.warnings.length > 0 && (
         <ul>
           {result.warnings.map((w, i) => (
-            <li key={i}>{w}</li>
+            <li key={i}>{tr(w)}</li>
           ))}
         </ul>
       )}
@@ -106,7 +105,7 @@ export function Busy({ text }: { text: string }): ReactNode {
   return (
     <div className="row muted">
       <span className="spinner" />
-      <span>{text}</span>
+      <span>{tr(text)}</span>
     </div>
   )
 }
@@ -123,8 +122,8 @@ export function Slider(props: {
 }): ReactNode {
   return (
     <label className="field">
-      <span>{props.label}</span>
-      {props.hint && <span className="hint">{props.hint}</span>}
+      <span>{tr(props.label)}</span>
+      {props.hint && <span className="hint">{tr(props.hint)}</span>}
       <div className="slider-field">
         <input
           type="range"
@@ -135,8 +134,8 @@ export function Slider(props: {
           onChange={(e) => props.onChange(Number(e.target.value))}
         />
         <output>
-          {props.value}
-          {props.unit ?? ''}
+          {tr(props.value)}
+          {tr(props.unit ?? '')}
         </output>
       </div>
     </label>
@@ -162,11 +161,9 @@ export function NotConnected({ onGo }: { onGo: () => void }): ReactNode {
   return (
     <div className="empty">
       <div className="tv-glyph" />
-      <h2>Connect to your TV first</h2>
-      <p className="muted">This step reads and changes things on the TV, so it needs the connection from Setup.</p>
-      <button className="btn primary" onClick={onGo}>
-        Go to Setup
-      </button>
+      <h2>{tr("Connect to your TV first")}</h2>
+      <p className="muted">{tr("This step reads and changes things on the TV, so it needs the connection from Setup.")}</p>
+      <button className="btn primary" onClick={onGo}>{tr("Go to Setup")}</button>
     </div>
   )
 }
@@ -203,9 +200,9 @@ export function ActionButton(props: {
 }): ReactNode {
   const faces: [Phase, ReactNode][] = [
     ['idle', props.label],
-    ['busy', <><span className="spinner" />{props.busyLabel}</>],
-    ['done', <><Tick />{props.doneLabel ?? 'Done'}</>],
-    ['failed', <><span className="morph-bang">!</span>{props.failedLabel ?? "Didn't work"}</>]
+    ['busy', <><span className="spinner" />{tr(props.busyLabel)}</>],
+    ['done', <><Tick />{tr(props.doneLabel ?? 'Done')}</>],
+    ['failed', <><span className="morph-bang">!</span>{tr(props.failedLabel ?? "Didn't work")}</>]
   ]
   return (
     <button
@@ -217,7 +214,7 @@ export function ActionButton(props: {
     >
       {faces.map(([id, face]) => (
         <span key={id} className={`morph-face${id === props.phase ? ' on' : ''}`} aria-hidden={id !== props.phase}>
-          {face}
+          {tr(face)}
         </span>
       ))}
     </button>
@@ -291,13 +288,11 @@ export function UndoToast(props: {
         onMouseLeave={() => setPaused(false)}
       >
         <span className="toast-icon">{state === 'undone' ? <Tick /> : state === 'undoing' ? <span className="spinner" /> : <Tick />}</span>
-        <span className="toast-text">{state === 'undone' ? props.undoneText : state === 'undoing' ? 'Putting it back' : props.text}</span>
+        <span className="toast-text">{tr(state === 'undone' ? props.undoneText : state === 'undoing' ? 'Putting it back' : props.text)}</span>
         {state === 'open' && (
-          <button className="btn small" onClick={undo}>
-            ↶ Undo
-          </button>
+          <button className="btn small" onClick={undo}>{tr("↶ Undo")}</button>
         )}
-        <button className="icon-btn" onClick={() => setState('leaving')} aria-label="Close">
+        <button className="icon-btn" onClick={() => setState('leaving')} aria-label={tr("Close")}>
           ✕
         </button>
         {state === 'open' && <span className="toast-clock" style={{ transform: `scaleX(${left / total})` }} />}
@@ -355,7 +350,7 @@ export function PinBoxes(props: { value: string; onChange: (v: string) => void; 
   }
 
   return (
-    <div className="pin-boxes" role="group" aria-label={props.label}>
+    <div className="pin-boxes" role="group" aria-label={tr(props.label)}>
       {Array.from({ length }, (_, i) => (
         <input
           key={i}
@@ -368,7 +363,7 @@ export function PinBoxes(props: { value: string; onChange: (v: string) => void; 
           maxLength={2}
           value={props.value[i] ?? ''}
           className={props.value[i] ? 'filled' : ''}
-          aria-label={`${props.label}, digit ${i + 1} of ${length}`}
+          aria-label={tr(tr("{0}, digit {1} of {2}", [props.label, i + 1, length]))}
           onChange={(e) => type(i, e.target.value)}
           onKeyDown={(e) => key(i, e)}
           onPaste={paste}
@@ -382,7 +377,7 @@ export function PinBoxes(props: { value: string; onChange: (v: string) => void; 
 /** Numbered steps joined by a line that fills as each one finishes. */
 export function Stepper(props: { steps: string[]; at: number; failed?: boolean; skipped?: number[] }): ReactNode {
   return (
-    <ol className="stepper" aria-label="Progress">
+    <ol className="stepper" aria-label={tr("Progress")}>
       {props.steps.map((label, i) => {
         const skipped = props.skipped?.includes(i)
         const state = i < props.at ? (skipped ? 'skipped' : 'complete') : i === props.at ? (props.failed ? 'failed' : 'current') : 'upcoming'
@@ -395,9 +390,9 @@ export function Stepper(props: { steps: string[]; at: number; failed?: boolean; 
             )}
             <span className="stepper-dot">{state === 'complete' ? <Tick /> : state === 'failed' ? '!' : state === 'skipped' ? '–' : i + 1}</span>
             <span className="stepper-label">
-              {label}
-              {skipped && <span className="sr-only"> (skipped)</span>}
-              {state === 'complete' && <span className="sr-only"> (done)</span>}
+              {tr(label)}
+              {skipped && <span className="sr-only">{tr(" (skipped)")}</span>}
+              {state === 'complete' && <span className="sr-only">{tr(" (done)")}</span>}
             </span>
           </li>
         )
@@ -410,7 +405,7 @@ export function Stepper(props: { steps: string[]; at: number; failed?: boolean; 
 export function Skeleton({ rows = 6, label }: { rows?: number; label: string }): ReactNode {
   const widths = ['72%', '58%', '80%', '64%', '76%', '52%']
   return (
-    <div className="skeleton" role="status" aria-busy="true" aria-label={label}>
+    <div className="skeleton" role="status" aria-busy="true" aria-label={tr(label)}>
       {Array.from({ length: rows }, (_, i) => (
         <div key={i} className="skeleton-row">
           <span className="skeleton-bar" style={{ width: 18 }} />
@@ -418,7 +413,7 @@ export function Skeleton({ rows = 6, label }: { rows?: number; label: string }):
           <span className="skeleton-bar" style={{ width: 90, marginLeft: 'auto' }} />
         </div>
       ))}
-      <span className="sr-only">{label}</span>
+      <span className="sr-only">{tr(label)}</span>
     </div>
   )
 }

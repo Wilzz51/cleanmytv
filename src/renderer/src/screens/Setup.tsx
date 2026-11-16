@@ -1,3 +1,4 @@
+import { t as tr } from '../lib/i18n'
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { ApplyResult, CheckItem, DownloadProgress, FoundTv, ScanHit, ToolId } from '@shared/api'
 import type { ScreenProps } from '../App'
@@ -153,11 +154,8 @@ export function Setup({ status, go, tvs, refreshTvs }: ScreenProps): ReactNode {
 
   return (
     <>
-      <h1>Set up</h1>
-      <p className="lede">
-        This app talks to the TV over your Wi-Fi. You don't need Python, Java or Android tools to clean the TV and install
-        the home screen. The one optional download is only for pairing some Google TVs.
-      </p>
+      <h1>{tr("Set up")}</h1>
+      <p className="lede">{tr("This app talks to the TV over your Wi-Fi. You don't need Python, Java or Android tools to clean the TV and install the home screen. The one optional download is only for pairing some Google TVs.")}</p>
 
       {status.state === 'waiting-auth' && <WaitingForAllow />}
 
@@ -166,8 +164,8 @@ export function Setup({ status, go, tvs, refreshTvs }: ScreenProps): ReactNode {
           tvs={tvs}
           status={status}
           onChange={refreshTvs}
-          title={tvs.length > 1 ? 'Which TV?' : 'Your TV'}
-          hint={tvs.length > 1 ? "You've used this app with more than one TV, so it waits for you to pick." : undefined}
+          title={tr(tvs.length > 1 ? 'Which TV?' : 'Your TV')}
+          hint={tr(tvs.length > 1 ? "You've used this app with more than one TV, so it waits for you to pick." : undefined)}
         />
       )}
 
@@ -181,98 +179,78 @@ export function Setup({ status, go, tvs, refreshTvs }: ScreenProps): ReactNode {
                   {status.probe.manufacturer} {status.probe.model}
                 </h2>
                 <div className="row">
-                  <StatusChip status="ok" text="Connected" />
-                  <button className="btn small ghost" onClick={() => window.cytv.disconnect()}>
-                    Disconnect
-                  </button>
+                  <StatusChip status="ok" text={tr("Connected")} />
+                  <button className="btn small ghost" onClick={() => window.cytv.disconnect()}>{tr("Disconnect")}</button>
                 </div>
               </div>
               <div className="facts">
                 <div>
-                  <span>Address</span>
+                  <span>{tr("Address")}</span>
                   <b>{status.host}</b>
                 </div>
                 <div>
-                  <span>Android</span>
+                  <span>{tr("Android")}</span>
                   <b>
-                    {status.probe.release} (API {status.probe.sdk})
+                    {status.probe.release}{tr(" (API ")}{tr(status.probe.sdk)})
                   </b>
                 </div>
                 <div>
-                  <span>Device</span>
+                  <span>{tr("Device")}</span>
                   <b>{status.probe.device}</b>
                 </div>
                 <div>
-                  <span>Build</span>
+                  <span>{tr("Build")}</span>
                   <b className="mono">{status.probe.build}</b>
                 </div>
               </div>
             </div>
           </div>
           {status.probe.adbSecure === '0' && (
-            <div className="notice warn" style={{ marginTop: 16, marginBottom: 0 }}>
-              This TV reports <code>ro.adb.secure=0</code>. Any device on your network can reach its debug port without the
-              Allow prompt. Close it when you're done: the Finish step walks you through it.
-            </div>
+            <div className="notice warn" style={{ marginTop: 16, marginBottom: 0 }}>{tr("This TV reports ")}<code>{tr("ro.adb.secure=0")}</code>{tr(". Any device on your network can reach its debug port without the Allow prompt. Close it when you're done: the Finish step walks you through it.")}</div>
           )}
           {status.probe.sdk > 0 && status.probe.sdk < 28 && (
-            <div className="notice warn" style={{ marginTop: 16, marginBottom: 0 }}>
-              This TV reports Android {status.probe.release} (API {status.probe.sdk}). CleanMyTV Home needs Android 9
-              (API 28) or newer, so the Home screen step will refuse to install here. Cleanup stays available and
-              reversible (nothing is uninstalled).
-            </div>
+            <div className="notice warn" style={{ marginTop: 16, marginBottom: 0 }}>{tr("This TV reports Android ")}{status.probe.release}{tr(" (API ")}{tr(status.probe.sdk)}{tr("). CleanMyTV Home needs Android 9 (API 28) or newer, so the Home screen step will refuse to install here. Cleanup stays available and reversible (nothing is uninstalled).")}</div>
           )}
           <div className="row" style={{ marginTop: 16 }}>
-            <button className="btn primary" onClick={() => go('debloat')}>
-              Next: clean up the TV
-            </button>
+            <button className="btn primary" onClick={() => go('debloat')}>{tr("Next: clean up the TV")}</button>
           </div>
         </div>
       ) : null}
 
       {connected && status.probe ? (
-        <TvPicker tvs={tvs} status={status} onChange={refreshTvs} title="Your other TVs" hint="Connecting to one disconnects this TV." />
+        <TvPicker tvs={tvs} status={status} onChange={refreshTvs} title={tr("Your other TVs")} hint={tr("Connecting to one disconnects this TV.")} />
       ) : (
         <div className="grid-2">
           <div className="card">
-            <h2>1. On the TV</h2>
+            <h2>{tr("1. On the TV")}</h2>
             <ol className="guide">
               <li>
-                <span>
-                  Open <span className="path">Settings<i>→</i>Device Preferences<i>→</i>About</span>. On some Google TVs it is{' '}
-                  <span className="path">Settings<i>→</i>System<i>→</i>About</span>.
+                <span>{tr("Open ")}<span className="path">{tr("Settings")}<i>→</i>{tr("Device Preferences")}<i>→</i>{tr("About")}</span>{tr(". On some Google TVs it is")}{tr(' ')}
+                  <span className="path">{tr("Settings")}<i>→</i>{tr("System")}<i>→</i>{tr("About")}</span>.
                 </span>
               </li>
               <li>
-                <span>
-                  Scroll to <b>Build</b> (or <b>Android TV OS build</b>) and press OK on it seven times. The TV says you are now a
-                  developer.
+                <span>{tr("Scroll to ")}<b>{tr("Build")}</b>{tr(" (or ")}<b>{tr("Android TV OS build")}</b>{tr(") and press OK on it seven times. The TV says you are now a developer.")}</span>
+              </li>
+              <li>
+                <span>{tr("Go back one screen and open ")}<b>{tr("Developer options")}</b>.
                 </span>
               </li>
               <li>
-                <span>
-                  Go back one screen and open <b>Developer options</b>.
-                </span>
+                <span>{tr("Turn on ")}<b>{tr("USB debugging")}</b>{tr(". If you also see ")}<b>{tr("Network debugging")}</b>{tr(" or ")}<b>{tr("ADB debugging")}</b>{tr(", turn that on too.")}</span>
               </li>
               <li>
-                <span>
-                  Turn on <b>USB debugging</b>. If you also see <b>Network debugging</b> or <b>ADB debugging</b>, turn that on
-                  too.
-                </span>
-              </li>
-              <li>
-                <span>Keep the TV on and on the same Wi-Fi as this computer.</span>
+                <span>{tr("Keep the TV on and on the same Wi-Fi as this computer.")}</span>
               </li>
             </ol>
           </div>
 
           <div className="card">
-            <h2>2. Find your TV</h2>
-            <p className="muted small">TVs on your Wi-Fi show up here by themselves. Pick yours to fill in its address.</p>
+            <h2>{tr("2. Find your TV")}</h2>
+            <p className="muted small">{tr("TVs on your Wi-Fi show up here by themselves. Pick yours to fill in its address.")}</p>
             {status.moved && status.error && (
               <div className="notice warn" style={{ marginBottom: 12 }}>
-                {status.error} Only connect to an address you recognise as your TV.
-              </div>
+                {tr(status.error)}{tr(" Only connect to an address you recognise as your TV.")}</div>
             )}
             {found.length > 0 ? (
               <ul className="host-list">
@@ -287,31 +265,26 @@ export function Setup({ status, go, tvs, refreshTvs }: ScreenProps): ReactNode {
                       >
                         <span className={`dot ${s.dot}`} />
                         <span style={{ flex: 1 }}>
-                          {tv.name || 'Android device'} <span className="muted small">{tv.host}</span>
+                          {tr(tv.name || 'Android device')} <span className="muted small">{tv.host}</span>
                         </span>
-                        <span className="muted small">{s.text}</span>
+                        <span className="muted small">{tr(s.text)}</span>
                       </button>
                     </li>
                   )
                 })}
               </ul>
             ) : (
-              looking && <Busy text="Looking for TVs" />
+              looking && <Busy text={tr("Looking for TVs")} />
             )}
-            <p className="muted small" style={{ marginTop: 12 }}>
-              Not listed? Older TVs don't announce themselves: the scan checks your network for port 5555. It takes a few seconds.
-            </p>
+            <p className="muted small" style={{ marginTop: 12 }}>{tr("Not listed? Older TVs don't announce themselves: the scan checks your network for port 5555. It takes a few seconds.")}</p>
             <div className="row" style={{ marginBottom: 12 }}>
               <button className="btn" onClick={scan} disabled={scanning || busy}>
-                {scanning ? 'Scanning…' : hits ? 'Scan again' : 'Scan the network'}
+                {tr(scanning ? 'Scanning…' : hits ? 'Scan again' : 'Scan the network')}
               </button>
               {scanning && <span className="spinner" />}
             </div>
             {hits && hits.length === 0 && (
-              <div className="notice warn">
-                No TV answered. Check that USB debugging is on and the TV is on this Wi-Fi, or type its address below (TV
-                Settings → Network → your network).
-              </div>
+              <div className="notice warn">{tr("No TV answered. Check that USB debugging is on and the TV is on this Wi-Fi, or type its address below (TV Settings → Network → your network).")}</div>
             )}
             {hits && hits.length > 0 && (
               <ul className="host-list">
@@ -328,7 +301,7 @@ export function Setup({ status, go, tvs, refreshTvs }: ScreenProps): ReactNode {
                     >
                       <span className="dot ok" />
                       <span style={{ flex: 1 }}>{h.host}</span>
-                      <span className="muted small">port 5555 open</span>
+                      <span className="muted small">{tr("port 5555 open")}</span>
                     </button>
                   </li>
                 ))}
@@ -341,32 +314,26 @@ export function Setup({ status, go, tvs, refreshTvs }: ScreenProps): ReactNode {
                 connect()
               }}
             >
-              <label className="field">
-                TV address
-                <input type="text" value={host} onChange={(e) => { setHost(e.target.value); setHostChosen(true) }} placeholder="192.168.1.50" />
+              <label className="field">{tr("TV address")}<input type="text" value={host} onChange={(e) => { setHost(e.target.value); setHostChosen(true) }} placeholder={tr("192.168.1.50")} />
               </label>
               <div className="row">
                 <button className="btn primary" type="submit" disabled={busy || !IP_RE.test(host.trim())}>
-                  {status.state === 'connecting' ? 'Connecting…' : 'Connect'}
+                  {tr(status.state === 'connecting' ? 'Connecting…' : 'Connect')}
                 </button>
-                {status.state === 'connecting' && <Busy text="Opening the connection" />}
+                {status.state === 'connecting' && <Busy text={tr("Opening the connection")} />}
               </div>
             </form>
             {connectError && (
               <div className="notice error" style={{ marginTop: 14, marginBottom: 0, whiteSpace: 'pre-line' }}>
-                {connectError}
+                {tr(connectError)}
                 {connectError.includes('/Applications/CleanMyTV.app/') && (
                   <div style={{ marginTop: 10 }}>
-                    <button className="btn small" onClick={() => void navigator.clipboard.writeText('/Applications/CleanMyTV.app/Contents/MacOS/CleanMyTV')}>
-                      Copy the Terminal command
-                    </button>
+                    <button className="btn small" onClick={() => void navigator.clipboard.writeText('/Applications/CleanMyTV.app/Contents/MacOS/CleanMyTV')}>{tr("Copy the Terminal command")}</button>
                   </div>
                 )}
                 {/network debugging is off|only works for pairing/.test(connectError) && !wantPair && (
                   <div style={{ marginTop: 10 }}>
-                    <button className="btn small" onClick={() => { setHostChosen(true); setWantPair(true) }}>
-                      Pair with a code
-                    </button>
+                    <button className="btn small" onClick={() => { setHostChosen(true); setWantPair(true) }}>{tr("Pair with a code")}</button>
                   </div>
                 )}
               </div>
@@ -388,24 +355,19 @@ export function Setup({ status, go, tvs, refreshTvs }: ScreenProps): ReactNode {
 
       <div className="card white" style={{ marginTop: 8 }}>
         <div className="card-head">
-          <h2>What's ready</h2>
-          <button className="btn small ghost" onClick={refreshChecks}>
-            Check again
-          </button>
+          <h2>{tr("What's ready")}</h2>
+          <button className="btn small ghost" onClick={refreshChecks}>{tr("Check again")}</button>
         </div>
         <ResultNotice result={downloadResult} onDismiss={() => setDownloadResult(null)} />
         {!checks ? (
-          <Busy text="Checking this computer" />
+          <Busy text={tr("Checking this computer")} />
         ) : (
           <>
             <Checklist items={required} progress={progress} downloading={downloading} onDownload={download} />
             {optional.length > 0 && (
               <>
-                <h3 style={{ marginTop: 22 }}>Optional</h3>
-                <p className="muted small">
-                  Only needed to pair a TV that asks for a code.
-                  Each one downloads into this app's own folder.
-                </p>
+                <h3 style={{ marginTop: 22 }}>{tr("Optional")}</h3>
+                <p className="muted small">{tr("Only needed to pair a TV that asks for a code. Each one downloads into this app's own folder.")}</p>
                 <Checklist items={optional} progress={progress} downloading={downloading} onDownload={download} />
               </>
             )}
@@ -431,17 +393,17 @@ function Checklist(props: {
           <li key={c.id} className="check">
             <div className="check-title">
               <StatusChip status={c.status} />
-              <span>{c.label}</span>
+              <span>{tr(c.label)}</span>
             </div>
             <div className="check-detail">
-              {c.detail}
+              {tr(c.detail)}
               {active && p && <DownloadBar p={p} />}
               {active && !p && <div className="progress indeterminate"><div /></div>}
             </div>
             <div className="check-actions">
               {c.download && (
                 <button className="btn small" onClick={() => props.onDownload(c.download!)} disabled={active}>
-                  {active ? 'Downloading…' : 'Download'}
+                  {tr(active ? 'Downloading…' : 'Download')}
                 </button>
               )}
             </div>
@@ -456,7 +418,7 @@ function DownloadBar({ p }: { p: DownloadProgress }): ReactNode {
   const pct = p.total > 0 ? Math.min(100, (p.received / p.total) * 100) : 0
   const label =
     p.phase === 'download'
-      ? `${mb(p.received)} of ${p.total ? mb(p.total) : '?'}`
+      ? tr("{0} of {1}", [mb(p.received), p.total ? mb(p.total) : '?'])
       : p.phase === 'extract'
         ? 'Unpacking'
         : p.phase === 'install'
@@ -469,30 +431,27 @@ function DownloadBar({ p }: { p: DownloadProgress }): ReactNode {
       <div className={`progress${p.phase === 'download' && p.total ? '' : ' indeterminate'}`}>
         <div style={p.phase === 'download' && p.total ? { width: `${pct}%` } : undefined} />
       </div>
-      <span className="small muted">{label}</span>
+      <span className="small muted">{tr(label)}</span>
     </div>
   )
 }
 
-const mb = (n: number): string => `${(n / 1e6).toFixed(n > 1e8 ? 0 : 1)} MB`
+const mb = (n: number): string => tr("{0} MB", [(n / 1e6).toFixed(n > 1e8 ? 0 : 1)])
 
 function WaitingForAllow(): ReactNode {
   return (
     <div className="waiting" role="status">
       <div className="allow-mock" aria-hidden>
-        <b>Allow USB debugging?</b>
-        <div className="small">RSA key fingerprint…</div>
-        <div className="small">☑ Always allow from this computer</div>
-        <div className="am-btn">Cancel</div>
-        <div className="am-btn focus">Allow</div>
+        <b>{tr("Allow USB debugging?")}</b>
+        <div className="small">{tr("RSA key fingerprint…")}</div>
+        <div className="small">{tr("☑ Always allow from this computer")}</div>
+        <div className="am-btn">{tr("Cancel")}</div>
+        <div className="am-btn focus">{tr("Allow")}</div>
       </div>
       <div>
-        <div className="big">Look at the TV and choose Allow.</div>
-        <p className="muted" style={{ marginTop: 6 }}>
-          Tick <b>Always allow from this computer</b> first, so it doesn't ask again. If nothing shows, press Home on the remote:
-          the prompt can hide behind a running app.
-        </p>
-        <Busy text="Waiting for the TV" />
+        <div className="big">{tr("Look at the TV and choose Allow.")}</div>
+        <p className="muted" style={{ marginTop: 6 }}>{tr("Tick ")}<b>{tr("Always allow from this computer")}</b>{tr(" first, so it doesn't ask again. If nothing shows, press Home on the remote: the prompt can hide behind a running app.")}</p>
+        <Busy text={tr("Waiting for the TV")} />
       </div>
     </div>
   )
@@ -542,52 +501,36 @@ function PairForm({ host, tv, onBusy, onPaired }: { host: string; tv?: FoundTv; 
   const valid = /^\d{4,5}$/.test(pairPort) && /^\d{6}$/.test(code.trim()) && /^\d{4,5}$/.test(connectPort)
   return (
     <div className="card white" ref={card}>
-      <h2>Pair with a code{tv?.name ? `: ${tv.name}` : ''}</h2>
-      <p className="muted">
-        Many Google TVs and Chromecasts only offer Wireless debugging, and keep port 5555 closed until you pair once. This uses Google's adb, which the app
-        downloads if it isn't here yet.
-      </p>
+      <h2>{tr("Pair with a code")}{tr(tv?.name ? `: ${tv.name}` : '')}</h2>
+      <p className="muted">{tr("Many Google TVs and Chromecasts only offer Wireless debugging, and keep port 5555 closed until you pair once. This uses Google's adb, which the app downloads if it isn't here yet.")}</p>
       <ol className="guide" style={{ marginBottom: 14 }}>
         <li>
-          <span>
-            On the TV: <span className="path">Developer options<i>→</i>Wireless debugging</span>, turn it on, and note the{' '}
-            <b>IP address &amp; port</b> on that screen. That is the connect port.
-          </span>
+          <span>{tr("On the TV: ")}<span className="path">{tr("Developer options")}<i>→</i>{tr("Wireless debugging")}</span>{tr(", turn it on, and note the")}{tr(' ')}
+            <b>{tr("IP address & port")}</b>{tr(" on that screen. That is the connect port.")}</span>
         </li>
         <li>
-          <span>
-            Choose <b>Pair device with pairing code</b>. Note the 6-digit code and the port shown under it. That is the pair
-            port.
-          </span>
+          <span>{tr("Choose ")}<b>{tr("Pair device with pairing code")}</b>{tr(". Note the 6-digit code and the port shown under it. That is the pair port.")}</span>
         </li>
       </ol>
       {tv?.pairPort && connectPort ? (
-        <div className="notice ok">Found the pairing screen on {host}. Type the 6-digit code it shows.</div>
+        <div className="notice ok">{tr("Found the pairing screen on ")}{tr(host)}{tr(". Type the 6-digit code it shows.")}</div>
       ) : (
-        tv && !tv.pairPort && <p className="muted small">Waiting for the pairing screen on {host}. The ports fill in when you open it.</p>
+        tv && !tv.pairPort && <p className="muted small">{tr("Waiting for the pairing screen on ")}{tr(host)}{tr(". The ports fill in when you open it.")}</p>
       )}
       <ResultNotice result={result} />
       <div className="row" style={{ alignItems: 'flex-end' }}>
-        <label className="field" style={{ width: 120 }}>
-          Pair port
-          <input type="text" inputMode="numeric" value={pairPort} onChange={(e) => setPairTyped(e.target.value)} />
+        <label className="field" style={{ width: 120 }}>{tr("Pair port")}<input type="text" inputMode="numeric" value={pairPort} onChange={(e) => setPairTyped(e.target.value)} />
         </label>
-        <label className="field" style={{ width: 130 }}>
-          Code
-          <input ref={codeInput} type="text" inputMode="numeric" value={code} onChange={(e) => setCode(e.target.value)} />
+        <label className="field" style={{ width: 130 }}>{tr("Code")}<input ref={codeInput} type="text" inputMode="numeric" value={code} onChange={(e) => setCode(e.target.value)} />
         </label>
-        <label className="field" style={{ width: 130 }}>
-          Connect port
-          <input type="text" inputMode="numeric" value={connectPort} onChange={(e) => setConnectTyped(e.target.value)} />
+        <label className="field" style={{ width: 130 }}>{tr("Connect port")}<input type="text" inputMode="numeric" value={connectPort} onChange={(e) => setConnectTyped(e.target.value)} />
         </label>
         <button className="btn primary" onClick={pair} disabled={!valid || busy}>
-          {busy ? 'Pairing…' : 'Pair and connect'}
+          {tr(busy ? 'Pairing…' : 'Pair and connect')}
         </button>
       </div>
       {/* The example numbers that used to sit in these fields read like real ones, and got sent as such. */}
-      <p className="small muted" style={{ marginTop: 8 }}>
-        Pair port and code: from the pairing window. Connect port: the port on the main Wireless debugging screen, after the IP address.
-      </p>
+      <p className="small muted" style={{ marginTop: 8 }}>{tr("Pair port and code: from the pairing window. Connect port: the port on the main Wireless debugging screen, after the IP address.")}</p>
     </div>
   )
 }

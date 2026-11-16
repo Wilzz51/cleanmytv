@@ -1,3 +1,4 @@
+import { t as tr } from '../lib/i18n'
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import type { HomeConfig, QuickEntry, QuickId, TvApp } from '@shared/api'
 
@@ -51,14 +52,14 @@ export function quickLabel(q: QuickEntry, apps: TvApp[]): string {
 function AppMark({ label, size }: { label: string; size: number }): ReactNode {
   return (
     <span aria-hidden style={{ width: size, height: size, borderRadius: size / 2, background: '#D7CFC4', color: '#1C2A1F', display: 'inline-grid', placeItems: 'center', fontSize: size * 0.55, fontWeight: 600, lineHeight: 1, flex: 'none' }}>
-      {label.trim().charAt(0).toUpperCase() || '?'}
+      {tr(label.trim().charAt(0).toUpperCase() || '?')}
     </span>
   )
 }
 
 /** The icon a top-bar entry shows: the drawn glyph, or for an app a disc 4 px larger, as on the TV. */
 export function QuickMark({ q, apps, size = 16 }: { q: QuickEntry; apps: TvApp[]; size?: number }): ReactNode {
-  return quickApp(q) ? <AppMark label={quickLabel(q, apps)} size={size + 4} /> : <QuickIcon id={q as QuickId} size={size} />
+  return quickApp(q) ? <AppMark label={tr(quickLabel(q, apps))} size={size + 4} /> : <QuickIcon id={q as QuickId} size={size} />
 }
 
 /** The order and grouping the launcher uses, from the same settings. */
@@ -96,7 +97,7 @@ function Tile({ app, w, names, focused, cfg }: { app: TvApp; w: number; names: b
   return (
     <div style={{ width: side, flex: 'none' }}>
       <div style={{ height: shape === 'wide' ? (w * 9) / 16 : side, borderRadius: radius, background: fill, display: 'grid', placeItems: 'center', color: ink, fontWeight: icons ? 600 : 500, fontSize: icons && shape !== 'wide' ? side * 0.4 : Math.max(12, w / 11), padding: '0 8px', textAlign: 'center', lineHeight: 1.15, overflow: 'hidden', ...ring }}>
-        {icons ? app.label.charAt(0).toUpperCase() : app.label}
+        {tr(icons ? app.label.charAt(0).toUpperCase() : app.label)}
       </div>
       {names && <div style={{ visibility: focused || !cfg.name_focus ? 'visible' : 'hidden', marginTop: 6, fontSize: 14, color: '#F0EBE5', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: shape === 'wide' ? 'left' : 'center' }}>{app.label}</div>}
     </div>
@@ -112,14 +113,14 @@ function Folder({ name, apps, w }: { name: string; apps: TvApp[]; w: number }): 
         ))}
       </div>
       <div style={{ marginTop: 6, fontSize: 14, color: '#F0EBE5' }}>
-        {name} · {apps.length}
+        {tr(name)} · {tr(apps.length)}
       </div>
     </div>
   )
 }
 
 function Title({ children }: { children: ReactNode }): ReactNode {
-  return <div style={{ fontSize: 18, color: '#F0EBE5', fontWeight: 500, margin: '12px 0 4px' }}>{children}</div>
+  return <div style={{ fontSize: 18, color: '#F0EBE5', fontWeight: 500, margin: '12px 0 4px' }}>{tr(children)}</div>
 }
 
 function Sections({ apps, cfg, width, dockW, showFolders = true }: { apps: TvApp[]; cfg: HomeConfig; width: number; dockW: number; showFolders?: boolean }): ReactNode {
@@ -137,11 +138,11 @@ function Sections({ apps, cfg, width, dockW, showFolders = true }: { apps: TvApp
             <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 14, width: 520, padding: 12, margin: '8px 0', borderRadius: 14, background: 'rgba(45,58,46,0.88)' }}>
               <div style={{ width: 64, height: 64, borderRadius: 8, background: '#3A4A3B', flex: 'none' }} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 17, fontWeight: 500 }}>What's playing</div>
-                <div style={{ fontSize: 13, color: '#D7CFC4', marginTop: 3 }}>Artist · App, while something plays</div>
+                <div style={{ fontSize: 17, fontWeight: 500 }}>{tr("What's playing")}</div>
+                <div style={{ fontSize: 13, color: '#D7CFC4', marginTop: 3 }}>{tr("Artist · App, while something plays")}</div>
               </div>
               {['❚❚', '▸▸'].map((g) => (
-                <div key={g} style={{ width: 44, height: 44, borderRadius: 22, background: 'rgba(255,255,255,0.08)', display: 'grid', placeItems: 'center', fontSize: 13 }}>{g}</div>
+                <div key={g} style={{ width: 44, height: 44, borderRadius: 22, background: 'rgba(255,255,255,0.08)', display: 'grid', placeItems: 'center', fontSize: 13 }}>{tr(g)}</div>
               ))}
             </div>
           )
@@ -149,7 +150,7 @@ function Sections({ apps, cfg, width, dockW, showFolders = true }: { apps: TvApp
         if (s === 'recent')
           return (
             <div key={s}>
-              <Title>Recently used</Title>
+              <Title>{tr("Recently used")}</Title>
               <div style={{ display: 'flex', gap: GAP, padding: '6px 0' }}>
                 {[...m.grid, ...m.dock].slice(0, 5).map((a) => <Tile key={a.pkg} app={a} w={rowW} names={cfg.show_names} focused={false} cfg={cfg} />)}
               </div>
@@ -173,7 +174,7 @@ function Sections({ apps, cfg, width, dockW, showFolders = true }: { apps: TvApp
         if (s === 'folders' && showFolders && m.folders.length)
           return (
             <div key={s}>
-              <Title>Folders</Title>
+              <Title>{tr("Folders")}</Title>
               <div style={{ display: 'flex', gap: GAP, padding: '6px 0' }}>
                 {m.folders.map((f) => <Folder key={f.name} name={f.name} apps={f.apps} w={rowW} />)}
               </div>
@@ -182,7 +183,7 @@ function Sections({ apps, cfg, width, dockW, showFolders = true }: { apps: TvApp
         if (s === 'grid' && m.grid.length)
           return (
             <div key={s}>
-              <Title>{cfg.names.all_apps || (m.dock.length || m.rows.length ? 'All apps' : 'Apps')}</Title>
+              <Title>{tr(cfg.names.all_apps || (m.dock.length || m.rows.length ? 'All apps' : 'Apps'))}</Title>
               <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cfg.columns}, ${gridW}px)`, gap: `14px ${GAP}px`, padding: '6px 0' }}>
                 {m.grid.map((a, i) => <Tile key={a.pkg} app={a} w={gridW} names={cfg.show_names} focused={i === 0 && focusOnce()} cfg={cfg} />)}
               </div>
@@ -199,13 +200,13 @@ function Clock({ cfg, size, dateSize, align }: { cfg: HomeConfig; size: number; 
   return (
     <div style={{ textAlign: align }}>
       <div style={{ fontSize: size, fontWeight: 300, lineHeight: 1.1, fontFamily: 'var(--font)' }}>9:41</div>
-      {cfg.clock === 'time_date' && <div style={{ fontSize: dateSize, color: '#D7CFC4', fontFamily: 'var(--font)' }}>Wednesday, 28 October</div>}
+      {cfg.clock === 'time_date' && <div style={{ fontSize: dateSize, color: '#D7CFC4', fontFamily: 'var(--font)' }}>{tr("Wednesday, 28 October")}</div>}
       {cfg.weather_place && (
         <div style={{ fontSize: dateSize, color: '#D7CFC4', fontFamily: 'var(--font)', marginTop: 4 }}>
-          ☁ 14°  16° / 9°  {cfg.weather_place}
+          ☁ 14°  16° / 9°  {tr(cfg.weather_place)}
         </div>
       )}
-      {cfg.memory && <div style={{ fontSize: dateSize, color: '#D7CFC4', fontFamily: 'var(--font)', marginTop: 4 }}>▦ 1.4 of 2 GB free</div>}
+      {cfg.memory && <div style={{ fontSize: dateSize, color: '#D7CFC4', fontFamily: 'var(--font)', marginTop: 4 }}>{tr("▦ 1.4 of 2 GB free")}</div>}
     </div>
   )
 }
@@ -218,7 +219,7 @@ const PREVIEW_FONT: Record<string, string> = {
 /** The TV's shade over the wallpaper: the background colour at [pct]% (#102). */
 const shade = (cfg: HomeConfig, pct: number): string => `color-mix(in srgb, ${cfg.background} ${pct}%, transparent)`
 
-const greetingText = (cfg: HomeConfig): string | null => (cfg.greeting.trim() ? `Good evening, ${cfg.greeting.trim()}` : null)
+const greetingText = (cfg: HomeConfig): string | null => (cfg.greeting.trim() ? tr("Good evening, {0}", [cfg.greeting.trim()]) : null)
 
 /**
  * A picture of the TV's home screen from the same settings the launcher reads: layout, sections, sizes
@@ -253,14 +254,14 @@ export function HomePreview({ apps, cfg }: { apps: TvApp[]; cfg: HomeConfig }): 
       <div style={{ display: 'flex', height: '100%', background: `linear-gradient(90deg, ${shade(cfg, 70)}, transparent 60%)` }}>
         <div style={{ width: W * 0.32, padding: `${SAFE_Y + 24}px 0 ${SAFE_Y + 48}px ${SAFE_X}px`, display: 'flex', flexDirection: 'column', gap: 14 }}>
           <Clock cfg={cfg} size={56} dateSize={15} align="left" />
-          {greet && <div style={{ fontSize: 18, fontWeight: 500 }}>{greet}</div>}
+          {greet && <div style={{ fontSize: 18, fontWeight: 500 }}>{tr(greet)}</div>}
           <div style={{ flex: 1 }} />
           {quick.map((q) => (
             <div key={q} style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 15 }}>
               <span style={{ width: 22, display: 'inline-grid', placeItems: 'center' }}>
                 <QuickMark q={q} apps={apps} size={18} />
-              </span>{' '}
-              {(!quickApp(q) && cfg.names[q as QuickId]) || quickLabel(q, apps)}
+              </span>{tr(' ')}
+              {tr((!quickApp(q) && cfg.names[q as QuickId]) || quickLabel(q, apps))}
             </div>
           ))}
         </div>
@@ -287,7 +288,7 @@ export function HomePreview({ apps, cfg }: { apps: TvApp[]; cfg: HomeConfig }): 
         </div>
         <div style={{ flex: 1, padding: `${SAFE_Y}px ${SAFE_X}px 0 24px`, overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: 20 }}>
-            <div style={{ fontSize: 20, fontWeight: 500, flex: 1 }}>{greet}</div>
+            <div style={{ fontSize: 20, fontWeight: 500, flex: 1 }}>{tr(greet)}</div>
             <Clock cfg={cfg} size={26} dateSize={12} align="right" />
           </div>
           <Sections apps={apps} cfg={cfg} width={W - SAFE_X - 56 - 24 - SAFE_X} dockW={196} showFolders={false} />
@@ -298,7 +299,7 @@ export function HomePreview({ apps, cfg }: { apps: TvApp[]; cfg: HomeConfig }): 
     body = (
       <div style={{ height: '100%', padding: `${SAFE_Y}px ${SAFE_X}px 0`, overflow: 'hidden', background: `linear-gradient(${shade(cfg, cfg.shade_top)}, transparent ${cfg.shade_top_reach}%)` }}>
         <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-          <div style={{ fontSize: 20, fontWeight: 500, flex: 1, paddingTop: 4 }}>{greet}</div>
+          <div style={{ fontSize: 20, fontWeight: 500, flex: 1, paddingTop: 4 }}>{tr(greet)}</div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
             <Clock cfg={cfg} size={26} dateSize={12} align="right" />
             {quick.length > 0 && (
@@ -318,9 +319,9 @@ export function HomePreview({ apps, cfg }: { apps: TvApp[]; cfg: HomeConfig }): 
     )
   }
   return (
-    <div ref={box} className="home-preview" style={{ height: H * scale }} aria-label="Preview of the TV home screen">
-      <div style={{ width: W, height: H, transform: `scale(${scale})`, transformOrigin: '0 0', color: '#F0EBE5', fontFamily: PREVIEW_FONT[cfg.font] ?? PREVIEW_FONT.default, ...ground }}>{body}</div>
-      <span className="home-preview-note">Sample time and greeting · app art shows on the TV</span>
+    <div ref={box} className="home-preview" style={{ height: H * scale }} aria-label={tr("Preview of the TV home screen")}>
+      <div style={{ width: W, height: H, transform: `scale(${scale})`, transformOrigin: '0 0', color: '#F0EBE5', fontFamily: PREVIEW_FONT[cfg.font] ?? PREVIEW_FONT.default, ...ground }}>{tr(body)}</div>
+      <span className="home-preview-note">{tr("Sample time and greeting · app art shows on the TV")}</span>
     </div>
   )
 }

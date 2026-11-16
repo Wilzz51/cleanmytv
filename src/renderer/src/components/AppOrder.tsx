@@ -1,3 +1,4 @@
+import { t as tr } from '../lib/i18n'
 import type { CSSProperties, ReactNode } from 'react'
 import {
   DndContext,
@@ -89,22 +90,22 @@ function SortableTile(props: {
   const style: CSSProperties = { transform: CSS.Transform.toString(transform), transition }
   const cls = `app-tile${props.dock ? ' dock' : ''}${props.hidden ? ' hidden-app' : ''}${isDragging ? ' dragging' : ''}`
   return (
-    <div ref={setNodeRef} style={style} className={cls} {...attributes} {...listeners} aria-label={`${props.app.label}${props.dock ? ', in the dock' : ''}${props.hidden ? ', hidden' : ''}`}>
+    <div ref={setNodeRef} style={style} className={cls} {...attributes} {...listeners} aria-label={tr(`${props.app.label}${props.dock ? ', in the dock' : ''}${props.hidden ? ', hidden' : ''}`)}>
       <div className="app-art" style={{ background: appColour(props.app.pkg) }}>
-        {monogram(props.app.label)}
+        {tr(monogram(props.app.label))}
       </div>
-      <div className="app-label" title={props.app.pkg}>
-        {props.app.label}
+      <div className="app-label" title={tr(props.app.pkg)}>
+        {tr(props.app.label)}
       </div>
       {/* Buttons stop the pointer so a click doesn't start a drag. */}
       <div className="app-tools" onPointerDown={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
-        <button className="icon-btn" onClick={props.onLeft} disabled={props.first} aria-label={`Move ${props.app.label} earlier`}>
+        <button className="icon-btn" onClick={props.onLeft} disabled={props.first} aria-label={tr(tr("Move {0} earlier", [props.app.label]))}>
           ←
         </button>
-        <button className="icon-btn" onClick={props.onHide} aria-label={props.hidden ? `Show ${props.app.label}` : `Hide ${props.app.label}`}>
-          {props.hidden ? 'Show' : 'Hide'}
+        <button className="icon-btn" onClick={props.onHide} aria-label={tr(props.hidden ? tr("Show {0}", [props.app.label]) : tr("Hide {0}", [props.app.label]))}>
+          {tr(props.hidden ? 'Show' : 'Hide')}
         </button>
-        <button className="icon-btn" onClick={props.onRight} disabled={props.last} aria-label={`Move ${props.app.label} later`}>
+        <button className="icon-btn" onClick={props.onRight} disabled={props.last} aria-label={tr(tr("Move {0} later", [props.app.label]))}>
           →
         </button>
       </div>

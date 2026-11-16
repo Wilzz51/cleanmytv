@@ -649,3 +649,19 @@ table.pkgs tr.dim td { opacity: 0.6; }
 .drop-zone { margin: 16px 0; padding: 32px 20px; border: 2px dashed var(--border); border-radius: 14px; text-align: center; background: var(--white); transition: border-color 0.15s, background 0.15s; }
 .drop-zone.over { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 8%, var(--white)); }
 .drop-title { font-weight: 700; font-size: 16px; margin: 0 0 12px; }
+.language-picker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.language-picker select {
+  max-width: 140px;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--background);
+  color: inherit;
+  font: inherit;
+}

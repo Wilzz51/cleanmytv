@@ -1,3 +1,4 @@
+import { t as tr } from '../lib/i18n'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { LogLine } from '@shared/api'
 
@@ -33,41 +34,35 @@ export function LogDrawer(): ReactNode {
   return (
     <div className="log">
       <button className="log-bar" onClick={() => setOpen(!open)} aria-expanded={open}>
-        <span>{open ? '▾' : '▸'} Activity</span>
-        <span className="last">{last ? (last.level === 'cmd' ? `$ ${last.text}` : last.text) : 'Nothing has run yet.'}</span>
-        {lines.length > 0 && <span className="muted small">{lines.length} lines</span>}
+        <span>{tr(open ? '▾' : '▸')}{tr(" Activity")}</span>
+        <span className="last">{last ? (last.level === 'cmd' ? `$ ${last.text}` : last.text) : tr('Nothing has run yet.')}</span>
+        {lines.length > 0 && <span className="muted small">{tr(lines.length)}{tr(" lines")}</span>}
       </button>
       {open && (
         <div className="log-body" ref={body}>
-          {lines.length === 0 && <p className="muted">Commands sent to the TV show up here.</p>}
+          {lines.length === 0 && <p className="muted">{tr("Commands sent to the TV show up here.")}</p>}
           {lines.map((l, i) => (
             <div key={i} className={`log-line ${l.level}`}>
-              <span className="t">{new Date(l.time).toLocaleTimeString([], { hour12: false })}</span>
-              <span className="task">{l.task}</span>
+              <span className="t">{tr(new Date(l.time).toLocaleTimeString([], { hour12: false }))}</span>
+              <span className="task">{tr(l.task)}</span>
               <span className="x">{l.text}</span>
             </div>
           ))}
           <div className="row" style={{ marginTop: 8 }}>
             {lines.length > 0 && (
               <>
-                <button className="btn small ghost" onClick={() => setLines([])}>
-                  Clear
-                </button>
-                <button className="btn small ghost" onClick={() => navigator.clipboard.writeText(lines.map(line).join('\n'))}>
-                  Copy all
-                </button>
+                <button className="btn small ghost" onClick={() => setLines([])}>{tr("Clear")}</button>
+                <button className="btn small ghost" onClick={() => navigator.clipboard.writeText(lines.map(line).join('\n'))}>{tr("Copy all")}</button>
               </>
             )}
             <button
               className="btn small ghost"
-              title="Your TV model, Android version, app versions and the TV's app list, then this log, without IP addresses. Paste it into a GitHub issue."
+              title={tr("Your TV model, Android version, app versions and the TV's app list, then this log, without IP addresses. Paste it into a GitHub issue.")}
               onClick={async () => {
-                const details = await window.cytv.bugReport().catch((e) => `Could not read the details: ${(e as Error).message}`)
-                navigator.clipboard.writeText(noAddresses(`${details}\n\nActivity:\n${lines.map(line).join('\n') || '(empty)'}`))
+                const details = await window.cytv.bugReport().catch((e) => tr("Could not read the details: {0}", [(e as Error).message]))
+                navigator.clipboard.writeText(noAddresses(tr("{0}\n\nActivity:\n{1}", [details, lines.map(line).join('\n') || '(empty)'])))
               }}
-            >
-              Copy for a bug report
-            </button>
+            >{tr("Copy for a bug report")}</button>
           </div>
         </div>
       )}

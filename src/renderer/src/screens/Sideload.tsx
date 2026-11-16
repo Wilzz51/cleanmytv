@@ -1,9 +1,10 @@
+import { t as tr } from '../lib/i18n'
 import { useEffect, useRef, useState, type DragEvent, type ReactNode } from 'react'
 import type { ApplyResult, SideloadInfo } from '@shared/api'
 import type { ScreenProps } from '../App'
 import { ActionButton, ResultNotice, errorText, usePhase } from '../components/ui'
 
-const mb = (bytes: number): string => (bytes >= 10 * 1024 * 1024 ? `${Math.round(bytes / 1024 / 1024)} MB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`)
+const mb = (bytes: number): string => (bytes >= 10 * 1024 * 1024 ? tr("{0} MB", [Math.round(bytes / 1024 / 1024)]) : tr("{0} MB", [(bytes / 1024 / 1024).toFixed(1)]))
 
 /** Install an app the owner downloaded: drop the .apk here, check what it is, then send it to the TV. */
 export function Sideload(_props: ScreenProps): ReactNode {
@@ -63,13 +64,11 @@ export function Sideload(_props: ScreenProps): ReactNode {
   const busy = phase === 'busy'
   return (
     <>
-      <h1>Install an app</h1>
-      <p className="lede">Put an app on the TV that isn't in its store. Download the app's .apk file on this computer, then drop it here.</p>
+      <h1>{tr("Install an app")}</h1>
+      <p className="lede">{tr("Put an app on the TV that isn't in its store. Download the app's .apk file on this computer, then drop it here.")}</p>
 
       <div className="notice warn">
-        <b>Only install apps you trust.</b> An app from outside the Play Store hasn't been checked by Google. It can show ads, collect what
-        you watch, or harm the TV. Get apps from their maker's own website, and skip anything that asks for more than it needs.
-      </div>
+        <b>{tr("Only install apps you trust.")}</b>{tr(" An app from outside the Play Store hasn't been checked by Google. It can show ads, collect what you watch, or harm the TV. Get apps from their maker's own website, and skip anything that asks for more than it needs.")}</div>
 
       <ResultNotice result={result} onDismiss={() => setResult(null)} />
 
@@ -90,9 +89,9 @@ export function Sideload(_props: ScreenProps): ReactNode {
             void pick(f)
           }}
         />
-        <p className="drop-title">{reading ? 'Reading the app…' : 'Drop an .apk file here'}</p>
-        <button className="btn" disabled={busy || reading} onClick={() => file.current?.click()}>Choose a file…</button>
-        <p className="small muted" style={{ marginBottom: 0 }}>Single .apk files only. Bundles (.apks, .xapk) aren't supported.</p>
+        <p className="drop-title">{tr(reading ? 'Reading the app…' : 'Drop an .apk file here')}</p>
+        <button className="btn" disabled={busy || reading} onClick={() => file.current?.click()}>{tr("Choose a file…")}</button>
+        <p className="small muted" style={{ marginBottom: 0 }}>{tr("Single .apk files only. Bundles (.apks, .xapk) aren't supported.")}</p>
       </div>
 
       {info && (
@@ -101,23 +100,23 @@ export function Sideload(_props: ScreenProps): ReactNode {
             <div>
               <h2 style={{ marginBottom: 4 }}>{info.file}</h2>
               <p className="small muted" style={{ margin: 0 }}>
-                <code>{info.package}</code>{info.versionName ? ` · version ${info.versionName}` : ''} · {mb(info.size)}
+                <code>{tr(info.package)}</code>{tr(info.versionName ? tr(" · version {0}", [info.versionName]) : '')} · {tr(mb(info.size))}
               </p>
             </div>
           </div>
           <p>
-            {info.installed
-              ? `The TV has version ${info.installed}. Installing replaces it and keeps the app's data.`
-              : "The TV doesn't have this app yet."}
+            {tr(info.installed
+              ? tr("The TV has version {0}. Installing replaces it and keeps the app's data.", [info.installed])
+              : "The TV doesn't have this app yet.")}
           </p>
           <div className="row">
-            <ActionButton phase={phase} primary label={info.installed ? 'Update on the TV' : 'Install on the TV'} busyLabel="Installing" doneLabel="Installed" disabled={busy} onClick={() => void install()} />
-            {!busy && <button className="btn ghost" onClick={() => { setInfo(null); setPath(null) }}>Cancel</button>}
+            <ActionButton phase={phase} primary label={tr(info.installed ? 'Update on the TV' : 'Install on the TV')} busyLabel="Installing" doneLabel="Installed" disabled={busy} onClick={() => void install()} />
+            {!busy && <button className="btn ghost" onClick={() => { setInfo(null); setPath(null) }}>{tr("Cancel")}</button>}
           </div>
           {sent && (
             <>
               <div className="progress"><div style={{ width: `${Math.round((sent.received / Math.max(1, sent.total)) * 100)}%` }} /></div>
-              <p className="small muted">Sending to the TV: {Math.round((sent.received / Math.max(1, sent.total)) * 100)}%</p>
+              <p className="small muted">{tr("Sending to the TV: ")}{tr(Math.round((sent.received / Math.max(1, sent.total)) * 100))}%</p>
             </>
           )}
         </div>

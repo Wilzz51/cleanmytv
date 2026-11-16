@@ -1,3 +1,4 @@
+import { t as tr, useLocale } from '../lib/i18n'
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 
 export interface JumpItem {
@@ -13,24 +14,26 @@ const ROW = 44
 
 /** ⌘K / Ctrl+K: type a few letters, Enter to go there. After EasyUI's Spotlight Search (MIT). */
 export function Jump({ items, onPick, onClose }: { items: JumpItem[]; onPick: (id: string) => void; onClose: () => void }): ReactNode {
+  const locale = useLocale()
   const [q, setQ] = useState('')
   const [hi, setHi] = useState(0)
   const list = useRef<HTMLDivElement>(null)
 
   const shown = useMemo(() => {
-    const terms = q.toLowerCase().split(/\s+/).filter(Boolean)
+    const normalize = (s: string): string => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+    const terms = normalize(q).split(/\s+/).filter(Boolean)
     if (!terms.length) return items
     // Every word must appear somewhere; a title hit ranks above a keyword hit.
     return items
       .map((it) => {
-        const title = it.title.toLowerCase()
-        const all = `${title} ${it.where.toLowerCase()} ${it.words}`
+        const title = normalize(tr(it.title))
+        const all = normalize(`${title} ${tr(it.where)} ${it.title} ${it.where} ${it.words}`)
         return { it, ok: terms.every((t) => all.includes(t)), score: terms.filter((t) => title.includes(t)).length }
       })
       .filter((x) => x.ok)
       .sort((a, b) => b.score - a.score)
       .map((x) => x.it)
-  }, [q, items])
+  }, [q, items, locale])
 
   useEffect(() => setHi(0), [q])
   useEffect(() => {
@@ -57,10 +60,10 @@ export function Jump({ items, onPick, onClose }: { items: JumpItem[]; onPick: (i
 
   return (
     <div className="jump-back" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="jump" role="dialog" aria-modal="true" aria-label="Jump to">
+      <div className="jump" role="dialog" aria-modal="true" aria-label={tr("Jump to")}>
         <input
           autoFocus
-          placeholder="Jump to a step or setting"
+          placeholder={tr("Jump to a step or setting")}
           value={q}
           onChange={(e) => setQ(e.target.value)}
           onKeyDown={key}
@@ -82,16 +85,16 @@ export function Jump({ items, onPick, onClose }: { items: JumpItem[]; onPick: (i
               onMouseMove={() => setHi(i)}
               onClick={() => onPick(it.id)}
             >
-              <b>{it.title}</b>
-              <span>{it.where}</span>
+              <b>{tr(it.title)}</b>
+              <span>{tr(it.where)}</span>
             </button>
           ))}
-          {shown.length === 0 && <div className="jump-empty">Nothing called “{q}”.</div>}
+          {shown.length === 0 && <div className="jump-empty">{tr("Nothing called “")}{tr(q)}”.</div>}
         </div>
         <div className="jump-foot">
-          <span><kbd>↑</kbd> <kbd>↓</kbd> move</span>
-          <span><kbd>Enter</kbd> open</span>
-          <span><kbd>Esc</kbd> close</span>
+          <span><kbd>↑</kbd> <kbd>↓</kbd>{tr(" move")}</span>
+          <span><kbd>{tr("Enter")}</kbd>{tr(" open")}</span>
+          <span><kbd>{tr("Esc")}</kbd>{tr(" close")}</span>
         </div>
       </div>
     </div>

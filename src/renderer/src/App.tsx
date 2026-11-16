@@ -1,3 +1,4 @@
+import { t as tr, useLocale, setLocale, type Locale } from './lib/i18n'
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import type { ConnStatus, HomeStatus, KnownTv, UpdateInfo } from '@shared/api'
 import { Jump, MOD_KEY, type JumpItem } from './components/Jump'
@@ -66,6 +67,7 @@ const JUMP_ITEMS: JumpItem[] = [
 const THUMB_MAX_AGE = 6 * 3600_000
 
 export default function App(): ReactNode {
+  const locale = useLocale()
   const [step, setStep] = useState<StepId>(() => {
     const h = location.hash.slice(1)
     return STEPS.some((s) => s.id === h) ? (h as StepId) : 'setup'
@@ -180,17 +182,17 @@ export default function App(): ReactNode {
       <aside className="sidebar">
         <div className="brand">
           <div className="brand-mark" aria-hidden />
-          <span className="brand-name">CleanMyTV</span>
+          <span className="brand-name">{tr("CleanMyTV")}</span>
         </div>
         {currentTv?.thumb && (
-          <button className="sidebar-tv" onClick={() => setStep('setup')} title="This TV. Open Setup to switch TVs." style={{ all: 'unset', cursor: 'pointer', display: 'block', marginBottom: 10 }}>
+          <button className="sidebar-tv" onClick={() => setStep('setup')} title={tr("This TV. Open Setup to switch TVs.")} style={{ all: 'unset', cursor: 'pointer', display: 'block', marginBottom: 10 }}>
             <TvThumb tv={currentTv} />
           </button>
         )}
         <ConnPill status={status} />
         <button className="jump-btn" onClick={() => setJumping(true)}>
-          <span>Find a setting</span>
-          <kbd>{MOD_KEY}K</kbd>
+          <span>{tr("Find a setting")}</span>
+          <kbd>{tr(MOD_KEY)}K</kbd>
         </button>
         <nav>
           <ol className="steps">
@@ -203,10 +205,10 @@ export default function App(): ReactNode {
                     onClick={() => setStep(s.id)}
                     aria-current={s.id === step ? 'step' : undefined}
                   >
-                    <span className="step-num">{isDone ? '✓' : i + 1}</span>
+                    <span className="step-num">{tr(isDone ? '✓' : i + 1)}</span>
                     <span className="step-label">
-                      {s.label}
-                      <span className="step-sub">{s.id === 'home' && connected && homeBehind ? 'Update ready for this TV' : s.sub}</span>
+                      {tr(s.label)}
+                      <span className="step-sub">{tr(s.id === 'home' && connected && homeBehind ? 'Update ready for this TV' : s.sub)}</span>
                     </span>
                   </button>
                 </li>
@@ -215,19 +217,24 @@ export default function App(): ReactNode {
           </ol>
         </nav>
         <div className="sidebar-foot">
-          {update?.available && <UpdateNote update={update} />}
-          Nothing is uninstalled. Every change can be undone from this app or the TV's Settings → Apps.
-          <a className="gh-link" href={REPO_URL} target="_blank" rel="noreferrer" title="Source, releases and issues on GitHub">
+          <label className="language-picker">
+            <span>{tr('Language')}</span>
+            <select aria-label={tr('Language')} value={locale} onChange={(e) => setLocale(e.target.value as Locale)}>
+              <option value="fr" lang="fr">Français</option>
+              <option value="en" lang="en">English</option>
+            </select>
+          </label>
+          {update?.available && <UpdateNote update={update} />}{tr("Nothing is uninstalled. Every change can be undone from this app or the TV's Settings → Apps.")}<a className="gh-link" href={REPO_URL} target="_blank" rel="noreferrer" title={tr("Source, releases and issues on GitHub")}>
             <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
               <path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
             </svg>
-            <span>wingedpanther/cleanmytv</span>
+            <span>{tr("wingedpanther/cleanmytv")}</span>
           </a>
-          <div className="gh-ver">CleanMyTV v{version} · MIT</div>
+          <div className="gh-ver">{tr("CleanMyTV v")}{tr(version)}{tr(" · MIT")}</div>
         </div>
       </aside>
       <main className="main">
-        <div className="content">{screen}</div>
+        <div className="content">{tr(screen)}</div>
         <LogDrawer />
       </main>
       {jumping && <Jump items={JUMP_ITEMS} onPick={jump} onClose={() => setJumping(false)} />}
@@ -241,16 +248,16 @@ function ConnPill({ status }: { status: ConnStatus }): ReactNode {
     status.state === 'connected'
       ? ['ok', p ? `${p.manufacturer} ${p.model}` : status.host ?? 'Connected']
       : status.state === 'connecting'
-        ? ['busy', `Connecting to ${status.host ?? 'TV'}`]
+        ? ['busy', tr("Connecting to {0}", [status.host ?? 'TV'])]
         : status.state === 'waiting-auth'
           ? ['busy', 'Waiting for Allow on the TV']
           : status.state === 'error'
             ? ['err', 'Not connected']
             : ['idle', 'No TV connected']
   return (
-    <div className="conn-pill" title={status.error ?? status.host}>
+    <div className="conn-pill" title={tr(status.error ?? status.host)}>
       <span className={`dot ${dot}`} />
-      <span>{text}</span>
+      <span>{tr(text)}</span>
     </div>
   )
 }
@@ -282,24 +289,22 @@ function UpdateNote({ update }: { update: UpdateInfo }): ReactNode {
 
   if (!update.canInstall) {
     return (
-      <a className="update-link" href={update.url} target="_blank" rel="noreferrer">
-        Version {update.latest} is out. Download it
-      </a>
+      <a className="update-link" href={update.url} target="_blank" rel="noreferrer">{tr("Version ")}{tr(update.latest)}{tr(" is out. Download it")}</a>
     )
   }
   return (
     <div className="update-note">
       <span>
-        <b>Version {update.latest} is out.</b>{' '}
-        <a href={update.url} target="_blank" rel="noreferrer">What's new</a>
+        <b>{tr("Version ")}{tr(update.latest)}{tr(" is out.")}</b>{tr(' ')}
+        <a href={update.url} target="_blank" rel="noreferrer">{tr("What's new")}</a>
       </span>
-      {phase === 'idle' && <button className="update-btn" onClick={() => void step('downloading', () => window.cytv.downloadUpdate(), 'ready')}>Update now</button>}
-      {phase === 'downloading' && <span className="update-state">Downloading… {pct}%</span>}
+      {phase === 'idle' && <button className="update-btn" onClick={() => void step('downloading', () => window.cytv.downloadUpdate(), 'ready')}>{tr("Update now")}</button>}
+      {phase === 'downloading' && <span className="update-state">{tr("Downloading… ")}{tr(pct)}%</span>}
       {phase === 'ready' && (
-        <button className="update-btn" onClick={() => void step('installing', () => window.cytv.installUpdate(), 'ready')}>Restart and update</button>
+        <button className="update-btn" onClick={() => void step('installing', () => window.cytv.installUpdate(), 'ready')}>{tr("Restart and update")}</button>
       )}
-      {phase === 'installing' && <span className="update-state">Installing…</span>}
-      {note && <span className="update-state">{note}</span>}
+      {phase === 'installing' && <span className="update-state">{tr("Installing…")}</span>}
+      {note && <span className="update-state">{tr(note)}</span>}
     </div>
   )
 }

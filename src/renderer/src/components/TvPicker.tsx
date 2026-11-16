@@ -1,3 +1,4 @@
+import { t as tr } from '../lib/i18n'
 import { useState, type ReactNode } from 'react'
 import type { ConnStatus, KnownTv } from '@shared/api'
 import { errorText } from './ui'
@@ -5,7 +6,7 @@ import { errorText } from './ui'
 /** The TV's last snapshot, or a plain screen shape until there is one. */
 export function TvThumb({ tv, className }: { tv?: KnownTv; className?: string }): ReactNode {
   return tv?.thumb ? (
-    <img className={`tv-thumb ${className ?? ''}`} src={tv.thumb} alt={`Screen of ${tv.model ?? 'the TV'}`} />
+    <img className={`tv-thumb ${className ?? ''}`} src={tv.thumb} alt={tr("Screen of {0}", [tv.model ?? 'the TV'])} />
   ) : (
     <div className={`tv-thumb no-shot ${className ?? ''}`} aria-hidden />
   )
@@ -15,10 +16,10 @@ function ago(t: number): string {
   if (!t) return 'a while ago'
   const m = Math.round((Date.now() - t) / 60000)
   if (m < 2) return 'just now'
-  if (m < 60) return `${m} min ago`
+  if (m < 60) return tr("{0} min ago", [m])
   const h = Math.round(m / 60)
-  if (h < 24) return `${h} h ago`
-  return `${Math.round(h / 24)} d ago`
+  if (h < 24) return tr("{0} h ago", [h])
+  return tr("{0} d ago", [Math.round(h / 24)])
 }
 
 /** TVs used before. Picking one connects to it (checking the same model answers there). */
@@ -50,26 +51,24 @@ export function TvPicker(props: { tvs: KnownTv[]; status: ConnStatus; onChange: 
 
   return (
     <div className="card white">
-      <h2>{props.title}</h2>
-      {props.hint && <p className="muted small">{props.hint}</p>}
-      {error && <div className="notice warn">{error}</div>}
+      <h2>{tr(props.title)}</h2>
+      {props.hint && <p className="muted small">{tr(props.hint)}</p>}
+      {error && <div className="notice warn">{tr(error)}</div>}
       <div className="tv-list">
         {list.map((tv) => (
           <div key={tv.host} className="tv-item">
             <TvThumb tv={tv} />
             <div className="tv-item-text">
-              <b>{[tv.manufacturer, tv.model].filter(Boolean).join(' ') || tv.host}</b>
+              <b>{tr([tv.manufacturer, tv.model].filter(Boolean).join(' ') || tv.host)}</b>
               <span className="muted small">
-                {tv.host} · used {ago(tv.lastUsed)}
+                {tv.host}{tr(" · used ")}{tr(ago(tv.lastUsed))}
               </span>
             </div>
             <div className="row">
               <button className="btn primary small" disabled={!!busy} onClick={() => connect(tv.host)}>
-                {busy === tv.host ? 'Connecting…' : 'Connect'}
+                {tr(busy === tv.host ? 'Connecting…' : 'Connect')}
               </button>
-              <button className="btn ghost small" disabled={!!busy} onClick={() => forget(tv.host)} title="Remove from this list">
-                Forget
-              </button>
+              <button className="btn ghost small" disabled={!!busy} onClick={() => forget(tv.host)} title={tr("Remove from this list")}>{tr("Forget")}</button>
             </div>
           </div>
         ))}

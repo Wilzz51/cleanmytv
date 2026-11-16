@@ -1,3 +1,4 @@
+import { t as tr } from './i18n'
 // Place search for the weather widget: Open-Meteo's geocoding, through the main process (the page's CSP
 // blocks the network). The TV then asks Open-Meteo for the weather at the chosen coordinates.
 
@@ -13,7 +14,7 @@ export async function findPlaces(query: string): Promise<Place[]> {
   const q = query.trim()
   if (q.length < 2) return []
   const r = await window.cytv.webGet(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=6&language=en&format=json`)
-  if (r.status !== 200) throw new Error(`The place search answered ${r.status}. Try again in a minute.`)
+  if (r.status !== 200) throw new Error(tr("The place search answered {0}. Try again in a minute.", [r.status]))
   const bin = atob(r.base64)
   const text = new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)))
   const results = (JSON.parse(text) as { results?: Record<string, unknown>[] }).results ?? []

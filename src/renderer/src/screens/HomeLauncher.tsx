@@ -1,3 +1,4 @@
+import { t as tr } from '../lib/i18n'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { ApplyResult, ButtonAction, HomeButton, HomeConfig, HomeGroup, HomeTheme, ThemeBackup, HomeLayout, HomeSection, HomeStatus, KeyPress, LookSlot, QuickEntry, QuickId, TvApp } from '@shared/api'
 import type { ScreenProps } from '../App'
@@ -143,13 +144,13 @@ export function HomeLauncher({ markDone, refreshTvs, status, homeSeen, openTab }
       let i = 0
       for (const t of BUILT_IN_THEMES) {
         for (let n = 0; n < THEME_PICTURES; n++) {
-          setBusy(`Putting the themes on the TV: picture ${++i} of ${total}`)
+          setBusy(tr("Putting the themes on the TV: picture {0} of {1}", [++i, total]))
           const jpeg = paintWallpaper(withPicture(t.paint, n), `${t.id}-${n}.jpg`).base64
           await window.cytv.themePackPut({ id: t.id, name: t.name, look: t.look, picture: n, jpeg })
         }
       }
       setCfg(await window.cytv.themePackEnd(BUILT_IN_THEMES.map((t) => t.id)))
-      setResult({ ok: true, summary: `${BUILT_IN_THEMES.length} themes are on the TV, ${THEME_PICTURES} pictures each. Open them with the Themes icon (Layout → top bar icons) or a remote button.`, warnings: [] })
+      setResult({ ok: true, summary: tr("{0} themes are on the TV, {1} pictures each. Open them with the Themes icon (Layout → top bar icons) or a remote button.", [BUILT_IN_THEMES.length, THEME_PICTURES]), warnings: [] })
     } catch (e) {
       setResult({ ok: false, summary: errorText(e), warnings: [] })
     } finally {
@@ -190,7 +191,7 @@ export function HomeLauncher({ markDone, refreshTvs, status, homeSeen, openTab }
     used: themeUsed,
     builtIn: (id, picture = 0) => {
       const t = BUILT_IN_THEMES.find((b) => b.id === id)
-      if (t) guarded(() => themeStep(`Putting ${t.name} on the TV`, async () =>
+      if (t) guarded(() => themeStep(tr("Putting {0} on the TV", [t.name]), async () =>
         window.cytv.applyHomeTheme({ name: t.name, look: t.look, wallpaper: paintWallpaper(withPicture(t.paint, picture), `${t.id}.jpg`).base64, from: `${t.id}:${picture}` }), t.name))
     },
     current: cfg?.wallpaper_from ?? '',
@@ -199,13 +200,13 @@ export function HomeLauncher({ markDone, refreshTvs, status, homeSeen, openTab }
       const t = BUILT_IN_THEMES.find((b) => b.id === id)
       if (!t) return
       const next = ((Number(n) || 0) + 1) % THEME_PICTURES
-      themeStep(`Drawing another picture for ${t.name}`, async () =>
+      themeStep(tr("Drawing another picture for {0}", [t.name]), async () =>
         window.cytv.setHomeWallpaper(paintWallpaper(withPicture(t.paint, next), `${t.id}.jpg`).base64).then(() =>
           window.cytv.setHomeConfig({ wallpaper_from: `${t.id}:${next}` })), t.name)
     },
     onTv: cfg?.themes_on_tv ?? 0,
     toTv: () => themesToTv(),
-    custom: (t) => guarded(() => themeStep(`Putting ${t.name} on the TV`, () => window.cytv.applyHomeTheme(t), t.name)),
+    custom: (t) => guarded(() => themeStep(tr("Putting {0} on the TV", [t.name]), () => window.cytv.applyHomeTheme(t), t.name)),
     file: (text) => {
       let t: HomeTheme
       try {
@@ -214,15 +215,15 @@ export function HomeLauncher({ markDone, refreshTvs, status, homeSeen, openTab }
         setResult({ ok: false, summary: errorText(e), warnings: [] })
         return
       }
-      guarded(() => themeStep(`Putting ${t.name} on the TV`, () => window.cytv.applyHomeTheme(t), t.name))
+      guarded(() => themeStep(tr("Putting {0} on the TV", [t.name]), () => window.cytv.applyHomeTheme(t), t.name))
     },
     backup: themeBackup,
     restore: () => themeStep('Putting your saved look back', () => window.cytv.restoreThemeBackup(), null),
     forget: () => window.cytv.forgetThemeBackup().then(readThemeBackup),
     saveOnTv: (name) =>
-      themeStep(`Saving ${name.trim()} on the TV`, async () => {
+      themeStep(tr("Saving {0} on the TV", [name.trim()]), async () => {
         const c = await window.cytv.saveThemeOnTv(name)
-        setResult({ ok: true, summary: `${name.trim()} is a theme on the TV now. Pick it under Themes in Customize on the TV, or with the Themes icon.`, warnings: [] })
+        setResult({ ok: true, summary: tr("{0} is a theme on the TV now. Pick it under Themes in Customize on the TV, or with the Themes icon.", [name.trim()]), warnings: [] })
         return c
       }, name.trim()),
     save: async (name) => {
@@ -252,11 +253,8 @@ export function HomeLauncher({ markDone, refreshTvs, status, homeSeen, openTab }
 
   return (
     <>
-      <h1>Home screen</h1>
-      <p className="lede">
-        CleanMyTV Home is the TV's new home screen: no ads, your apps, your layout. Install it once, then change anything here;
-        the TV shows it straight away and keeps it after a reboot. The stock launcher is one click away on the Overview tab.
-      </p>
+      <h1>{tr("Home screen")}</h1>
+      <p className="lede">{tr("CleanMyTV Home is the TV's new home screen: no ads, your apps, your layout. Install it once, then change anything here; the TV shows it straight away and keeps it after a reboot. The stock launcher is one click away on the Overview tab.")}</p>
       <ResultNotice result={result} onDismiss={() => setResult(null)} />
       {stockPick && !busy && (
         <StockPicker
@@ -267,27 +265,24 @@ export function HomeLauncher({ markDone, refreshTvs, status, homeSeen, openTab }
       )}
       {busy && (
         <div className="notice">
-          <Busy text={busy} />
+          <Busy text={tr(busy)} />
         </div>
       )}
 
       {!home ? (
-        <Busy text="Asking the TV about CleanMyTV Home" />
+        <Busy text={tr("Asking the TV about CleanMyTV Home")} />
       ) : (
         <>
           <div className="tabs" role="tablist">
             {TABS.map(([id, label]) => (
-              <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? 'on' : ''} disabled={id !== 'overview' && !ready} title={id !== 'overview' && !ready ? locked : undefined} onClick={() => setTab(id)}>
-                {label}
+              <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? 'on' : ''} disabled={id !== 'overview' && !ready} title={tr(id !== 'overview' && !ready ? locked : undefined)} onClick={() => setTab(id)}>
+                {tr(label)}
               </button>
             ))}
           </div>
 
           {outdated(home) && (
-            <div className="notice warn">
-              The TV has CleanMyTV Home {home.versionName}; this app carries {home.bundledVersion}. Press Update and use below to change
-              its layout, apps, look and remote buttons from here. The other tabs open after that.
-            </div>
+            <div className="notice warn">{tr("The TV has CleanMyTV Home ")}{home.versionName}{tr("; this app carries ")}{tr(home.bundledVersion)}{tr(". Press Update and use below to change its layout, apps, look and remote buttons from here. The other tabs open after that.")}</div>
           )}
           {tab === 'overview' && (
             <Overview home={home} busy={!!busy} busyText={busy} run={run} askStock={() => setAskStock(true)} host={status.host} onShot={refreshTvs} />
@@ -306,14 +301,14 @@ export function HomeLauncher({ markDone, refreshTvs, status, homeSeen, openTab }
           {ready && tab === 'music' && <MusicTab cfg={cfg} set={set} />}
           {ready && tab === 'lock' && apps && <LockTab cfg={cfg} set={set} apps={apps} setCfg={setCfg} onError={(e) => setResult({ ok: false, summary: errorText(e), warnings: [] })} />}
           {ready && tab === 'buttons' && apps && <ButtonsTab cfg={cfg} set={set} apps={apps} setCfg={setCfg} brand={status.probe?.manufacturer} onError={(e) => setResult({ ok: false, summary: errorText(e), warnings: [] })} />}
-          {ready && tab !== 'overview' && <p className="small muted">{saving ? 'Sending to the TV…' : 'Saved on the TV.'}</p>}
+          {ready && tab !== 'overview' && <p className="small muted">{tr(saving ? 'Sending to the TV…' : 'Saved on the TV.')}</p>}
         </>
       )}
 
       {riskyTheme && (
         <Confirm
-          title="Your wallpaper can't be saved"
-          confirmLabel="Use the theme anyway"
+          title={tr("Your wallpaper can't be saved")}
+          confirmLabel={tr("Use the theme anyway")}
           onCancel={() => setRiskyTheme(null)}
           onConfirm={() => {
             const go = riskyTheme
@@ -321,25 +316,22 @@ export function HomeLauncher({ markDone, refreshTvs, status, homeSeen, openTab }
             go()
           }}
         >
-          <p>
-            Before the first theme, the app saves your look so you can put it back. Your wallpaper was set by an older CleanMyTV,
-            which kept no copy of it, so it can't be part of that: putting your look back keeps the theme's wallpaper.
-          </p>
-          <p>To keep it, set the same picture again first, under Wallpaper below.</p>
+          <p>{tr("Before the first theme, the app saves your look so you can put it back. Your wallpaper was set by an older CleanMyTV, which kept no copy of it, so it can't be part of that: putting your look back keeps the theme's wallpaper.")}</p>
+          <p>{tr("To keep it, set the same picture again first, under Wallpaper below.")}</p>
         </Confirm>
       )}
 
       {askStock && (
         <Confirm
-          title="Use the stock launcher again?"
-          confirmLabel="Switch back"
+          title={tr("Use the stock launcher again?")}
+          confirmLabel={tr("Switch back")}
           onConfirm={() => {
             setAskStock(false)
             run('Giving Home back to the stock launcher', () => window.cytv.useStockLauncher())
           }}
           onCancel={() => setAskStock(false)}
         >
-          <p>The app switches the TV's own launcher back on and makes it Home. CleanMyTV Home stays installed, so you can switch again.</p>
+          <p>{tr("The app switches the TV's own launcher back on and makes it Home. CleanMyTV Home stays installed, so you can switch again.")}</p>
         </Confirm>
       )}
     </>
@@ -356,35 +348,25 @@ function StockPicker({ pick, onPick, onCancel }: { pick: StockPick; onPick: (sto
   const [chosen, setChosen] = useState(pick.choices.length === 1 ? pick.choices[0] : '')
   return (
     <div className="card white">
-      <h2>Which one is the TV's own launcher?</h2>
+      <h2>{tr("Which one is the TV's own launcher?")}</h2>
       {pick.choices.length === 0 ? (
-        <p className="muted">
-          Nothing on the TV can be Home apart from CleanMyTV Home, so there is no launcher to fall back on. Leave it as it is and
-          report your TV model on GitHub.
-        </p>
+        <p className="muted">{tr("Nothing on the TV can be Home apart from CleanMyTV Home, so there is no launcher to fall back on. Leave it as it is and report your TV model on GitHub.")}</p>
       ) : (
         <>
-          <p className="small muted">
-            These apps can be Home on this TV. Pick the one the TV came with. It stays on, and Undo and the restart check give Home
-            back to it.
-          </p>
+          <p className="small muted">{tr("These apps can be Home on this TV. Pick the one the TV came with. It stays on, and Undo and the restart check give Home back to it.")}</p>
           <div className="place-list" role="radiogroup">
             {pick.choices.map((c) => (
               <label key={c} className="row" style={{ gap: 8 }}>
                 <input type="radio" name="stock" checked={chosen === c} onChange={() => setChosen(c)} />
-                <span className="mono">{c}</span>
+                <span className="mono">{tr(c)}</span>
               </label>
             ))}
           </div>
         </>
       )}
       <div className="row" style={{ marginTop: 16 }}>
-        <button className="btn primary" disabled={!chosen} onClick={() => onPick(chosen)}>
-          Use this one and carry on
-        </button>
-        <button className="btn ghost" onClick={onCancel}>
-          Cancel
-        </button>
+        <button className="btn primary" disabled={!chosen} onClick={() => onPick(chosen)}>{tr("Use this one and carry on")}</button>
+        <button className="btn ghost" onClick={onCancel}>{tr("Cancel")}</button>
       </div>
     </div>
   )
@@ -432,22 +414,22 @@ function Overview(props: { home: HomeStatus; busy: boolean; run: (label: string,
     <>
       <div className="card white">
         <div className="card-head">
-          <h2>On this TV</h2>
-          <StatusChip status={home.isHome ? 'ok' : home.installed ? 'warn' : 'optional'} text={home.isHome ? 'Is Home' : home.installed ? 'Installed, not Home' : 'Not installed'} />
+          <h2>{tr("On this TV")}</h2>
+          <StatusChip status={home.isHome ? 'ok' : home.installed ? 'warn' : 'optional'} text={tr(home.isHome ? 'Is Home' : home.installed ? 'Installed, not Home' : 'Not installed')} />
         </div>
         <div className="facts">
           <div>
-            <span>On the TV</span>
-            <b>{home.installed ? `version ${home.versionName ?? '?'}` : 'not installed'}</b>
+            <span>{tr("On the TV")}</span>
+            <b>{tr(home.installed ? tr("version {0}", [home.versionName ?? '?']) : 'not installed')}</b>
           </div>
           <div>
-            <span>In this app</span>
-            <b>{home.bundled ? `version ${home.bundledVersion ?? '?'}` : 'no bundled copy'}</b>
+            <span>{tr("In this app")}</span>
+            <b>{tr(home.bundled ? tr("version {0}", [home.bundledVersion ?? '?']) : 'no bundled copy')}</b>
           </div>
         </div>
         {home.unsupported && (
           <div className="notice warn" style={{ marginTop: 16, marginBottom: 0 }}>
-            {home.unsupported}
+            {tr(home.unsupported)}
           </div>
         )}
         <div className="row" style={{ marginTop: 16 }}>
@@ -455,59 +437,48 @@ function Overview(props: { home: HomeStatus; busy: boolean; run: (label: string,
             <ActionButton
               primary
               phase={props.busyText?.startsWith('Installing') ? 'busy' : 'idle'}
-              label={home.installed ? 'Update and use' : 'Install and use'}
+              label={tr(home.installed ? 'Update and use' : 'Install and use')}
               busyLabel={home.installed ? 'Updating' : 'Installing'}
               disabled={busy || !home.bundled || !!home.unsupported}
               onClick={() => run('Installing CleanMyTV Home. Keep the TV on.', () => window.cytv.installHome(), (s) => window.cytv.installHome(s))}
             />
           )}
           {home.installed && !home.isHome && (
-            <button className="btn primary" disabled={busy} onClick={() => run('Switching Home to CleanMyTV Home', () => window.cytv.useHome(), (s) => window.cytv.useHome(s))}>
-              Use CleanMyTV Home
-            </button>
+            <button className="btn primary" disabled={busy} onClick={() => run('Switching Home to CleanMyTV Home', () => window.cytv.useHome(), (s) => window.cytv.useHome(s))}>{tr("Use CleanMyTV Home")}</button>
           )}
           {home.isHome && (
-            <button className="btn" disabled={busy} onClick={props.askStock}>
-              Give Home back to the stock launcher
-            </button>
+            <button className="btn" disabled={busy} onClick={props.askStock}>{tr("Give Home back to the stock launcher")}</button>
           )}
           {home.isHome && home.googleLauncher && (
             <button className="btn ghost" disabled={busy} onClick={() => run(home.googleKept ? "Switching Google TV's launcher off" : "Keeping Google TV's launcher on", () => window.cytv.keepGoogleLauncher(!home.googleKept))}>
-              {home.googleKept ? "Switch Google TV's launcher off again" : "Keep Google TV's launcher on"}
+              {tr(home.googleKept ? "Switch Google TV's launcher off again" : "Keep Google TV's launcher on")}
             </button>
           )}
           {home.installed && others === null && (
-            <button className="btn ghost" disabled={busy} onClick={() => void findOthers()}>
-              Use another launcher…
-            </button>
+            <button className="btn ghost" disabled={busy} onClick={() => void findOthers()}>{tr("Use another launcher…")}</button>
           )}
         </div>
         {home.isHome && home.fireTv && (
-          <p className="muted small" style={{ marginTop: 16, marginBottom: 0 }}>
-            Fire TV always opens Amazon's home screen first. CleanMyTV Home comes back in front a moment after you press Home, up to 5 seconds on some models.
-          </p>
+          <p className="muted small" style={{ marginTop: 16, marginBottom: 0 }}>{tr("Fire TV always opens Amazon's home screen first. CleanMyTV Home comes back in front a moment after you press Home, up to 5 seconds on some models.")}</p>
         )}
         {home.isHome && home.googleLauncher && (
           <p className="muted small" style={{ marginTop: 16, marginBottom: 0 }}>
-            {home.googleKept
+            {tr(home.googleKept
               ? "Google TV's launcher is kept on, so apps that need it work. After a Home press, CleanMyTV Home comes back in front a moment later."
-              : "If Apple TV or Netflix stops playing, or Google Photos albums won't load for the screensaver, keep Google TV's launcher on. Those apps need it. CleanMyTV Home then comes back in front a moment after you press Home."}
+              : "If Apple TV or Netflix stops playing, or Google Photos albums won't load for the screensaver, keep Google TV's launcher on. Those apps need it. CleanMyTV Home then comes back in front a moment after you press Home.")}
           </p>
         )}
-        {othersError && <div className="notice error" style={{ marginTop: 16, marginBottom: 0 }}>{othersError}</div>}
+        {othersError && <div className="notice error" style={{ marginTop: 16, marginBottom: 0 }}>{tr(othersError)}</div>}
         {others !== null && (
           <div className="notice" style={{ marginTop: 16, marginBottom: 0 }}>
             {others.length === 0 ? (
-              <p style={{ margin: 0 }}>No other launcher is installed. Put one on with Install an app, then come back here.</p>
+              <p style={{ margin: 0 }}>{tr("No other launcher is installed. Put one on with Install an app, then come back here.")}</p>
             ) : (
               <>
-                <p style={{ margin: '0 0 10px' }}>
-                  These can be Home instead. Remote buttons, the app lock and everything in these tabs need CleanMyTV Home, so they stop until you switch back.
-                </p>
+                <p style={{ margin: '0 0 10px' }}>{tr("These can be Home instead. Remote buttons, the app lock and everything in these tabs need CleanMyTV Home, so they stop until you switch back.")}</p>
                 <div className="row">
                   {others.map((pkg) => (
-                    <button key={pkg} className="btn small" disabled={busy} onClick={() => run(`Making ${pkg} Home`, () => window.cytv.useOtherLauncher(pkg))}>
-                      Use {pkg}
+                    <button key={pkg} className="btn small" disabled={busy} onClick={() => run(tr("Making {0} Home", [pkg]), () => window.cytv.useOtherLauncher(pkg))}>{tr("Use ")}{tr(pkg)}
                     </button>
                   ))}
                 </div>
@@ -517,37 +488,31 @@ function Overview(props: { home: HomeStatus; busy: boolean; run: (label: string,
         )}
         {home.oldLauncher && (
           <div className="notice" style={{ marginTop: 16, marginBottom: 0 }}>
-            <p style={{ margin: '0 0 10px' }}>
-              The CleanYourTV launcher from earlier versions of this app is still on the TV. CleanMyTV Home replaces it.
-              {!home.isHome && ' Install or switch to CleanMyTV Home first.'}
+            <p style={{ margin: '0 0 10px' }}>{tr("The CleanYourTV launcher from earlier versions of this app is still on the TV. CleanMyTV Home replaces it.")}{tr(!home.isHome && ' Install or switch to CleanMyTV Home first.')}
             </p>
-            <button className="btn small" disabled={busy || !home.isHome} onClick={() => run('Removing the CleanYourTV launcher', () => window.cytv.removeOldLauncher())}>
-              Remove the CleanYourTV launcher
-            </button>
+            <button className="btn small" disabled={busy || !home.isHome} onClick={() => run('Removing the CleanYourTV launcher', () => window.cytv.removeOldLauncher())}>{tr("Remove the CleanYourTV launcher")}</button>
           </div>
         )}
       </div>
 
       <div className="card">
         <div className="card-head">
-          <h2>What the TV shows</h2>
+          <h2>{tr("What the TV shows")}</h2>
           <button className="btn small" onClick={snapshot} disabled={shooting}>
-            {shooting ? 'Taking a snapshot…' : 'Take a snapshot'}
+            {tr(shooting ? 'Taking a snapshot…' : 'Take a snapshot')}
           </button>
         </div>
-        {shotError && <div className="notice warn">{shotError}</div>}
+        {shotError && <div className="notice warn">{tr(shotError)}</div>}
         {shot ? (
           <>
             <img src={shot} alt="The TV screen" style={{ width: '100%', borderRadius: 10, border: '1px solid var(--line)' }} />
             <div className="row" style={{ marginTop: 10 }}>
-              <button className="btn small" onClick={() => void window.cytv.saveScreenshot().then((p) => p && setSaved(p)).catch((e) => setShotError(errorText(e)))}>
-                Save…
-              </button>
-              {saved && <span className="muted small">Saved as {saved.split(/[\\/]/).pop()}</span>}
+              <button className="btn small" onClick={() => void window.cytv.saveScreenshot().then((p) => p && setSaved(p)).catch((e) => setShotError(errorText(e)))}>{tr("Save…")}</button>
+              {saved && <span className="muted small">{tr("Saved as ")}{tr(saved.split(/[\\/]/).pop())}</span>}
             </div>
           </>
         ) : (
-          <p className="muted small">A picture of the TV screen right now. It also becomes this TV's thumbnail in the sidebar.</p>
+          <p className="muted small">{tr("A picture of the TV screen right now. It also becomes this TV's thumbnail in the sidebar.")}</p>
         )}
       </div>
     </>
@@ -569,18 +534,14 @@ function AppsTab({ apps, cfg, set }: { apps: TvApp[]; cfg: HomeConfig; set: SetF
         <HomePreview apps={apps} cfg={cfg} />
       </div>
       <div className="card">
-        <h2>Dock and order</h2>
-        <Slider label="Apps in the dock" hint="The first apps sit in a row of large tiles. 0 for no dock." value={cfg.dock_size} min={0} max={8} onChange={(v) => set({ dock_size: v }, 300)} />
-        <Toggle label="Phone apps in an Other apps folder" hint="Apps made for phones, with no TV picture, move out of the dock and the grid into one folder. Apps you put in rows or folders stay where they are." checked={cfg.other_apps} onChange={(v) => set({ other_apps: v })} />
+        <h2>{tr("Dock and order")}</h2>
+        <Slider label={tr("Apps in the dock")} hint={tr("The first apps sit in a row of large tiles. 0 for no dock.")} value={cfg.dock_size} min={0} max={8} onChange={(v) => set({ dock_size: v }, 300)} />
+        <Toggle label={tr("Phone apps in an Other apps folder")} hint={tr("Apps made for phones, with no TV picture, move out of the dock and the grid into one folder. Apps you put in rows or folders stay where they are.")} checked={cfg.other_apps} onChange={(v) => set({ other_apps: v })} />
         <div className="row" style={{ margin: '6px 0 10px' }}>
-          <span className="muted small">Drag to reorder, or use the arrows. Highlighted tiles are the dock. Apps in a folder show only in the folder.</span>
+          <span className="muted small">{tr("Drag to reorder, or use the arrows. Highlighted tiles are the dock. Apps in a folder show only in the folder.")}</span>
           <span className="spacer" />
-          <button className="btn small ghost" onClick={() => set({ order: [] })}>
-            Reset order
-          </button>
-          <button className="btn small ghost" onClick={() => set({ hidden: [] })} disabled={!cfg.hidden.length}>
-            Show all
-          </button>
+          <button className="btn small ghost" onClick={() => set({ order: [] })}>{tr("Reset order")}</button>
+          <button className="btn small ghost" onClick={() => set({ hidden: [] })} disabled={!cfg.hidden.length}>{tr("Show all")}</button>
         </div>
         <AppOrder
           apps={ordered}
@@ -598,8 +559,8 @@ function AppsTab({ apps, cfg, set }: { apps: TvApp[]; cfg: HomeConfig; set: SetF
       </div>
       <Groups
         kind="rows"
-        title="Rows"
-        hint="Named rows of apps, like Watch or Music. An app can be in a row and the grid at the same time."
+        title={tr("Rows")}
+        hint={tr("Named rows of apps, like Watch or Music. An app can be in a row and the grid at the same time.")}
         groups={cfg.rows}
         apps={ordered}
         max={8}
@@ -607,8 +568,8 @@ function AppsTab({ apps, cfg, set }: { apps: TvApp[]; cfg: HomeConfig; set: SetF
       />
       <Groups
         kind="folders"
-        title="Folders"
-        hint="A folder shows as one tile; OK on the remote opens it. Apps in a folder leave the dock and grid."
+        title={tr("Folders")}
+        hint={tr("A folder shows as one tile; OK on the remote opens it. Apps in a folder leave the dock and grid.")}
         groups={cfg.folders}
         apps={ordered}
         max={12}
@@ -633,32 +594,30 @@ function Groups(props: { kind: 'rows' | 'folders'; title: string; hint: string; 
   return (
     <div className="card">
       <div className="card-head">
-        <h2>{props.title}</h2>
+        <h2>{tr(props.title)}</h2>
         <button className="btn small" disabled={groups.length >= props.max} onClick={() => onChange([...groups, { name: `${fresh} ${groups.length + 1}`, apps: [] }])}>
-          {props.kind === 'rows' ? 'Add a row' : 'Add a folder'}
+          {tr(props.kind === 'rows' ? 'Add a row' : 'Add a folder')}
         </button>
       </div>
-      <p className="muted small">{props.hint}</p>
+      <p className="muted small">{tr(props.hint)}</p>
       {groups.map((g, i) => (
         <div key={i} className="group-card">
           <div className="row">
-            <input type="text" maxLength={30} value={g.name} aria-label={`${props.kind === 'rows' ? 'Row' : 'Folder'} name`} onChange={(e) => update(i, { ...g, name: e.target.value })} style={{ flex: 1 }} />
-            <button className="btn small ghost" disabled={i === 0} onClick={() => move(i, -1)} aria-label="Move up">
+            <input type="text" maxLength={30} value={g.name} aria-label={tr(tr("{0} name", [props.kind === 'rows' ? 'Row' : 'Folder']))} onChange={(e) => update(i, { ...g, name: e.target.value })} style={{ flex: 1 }} />
+            <button className="btn small ghost" disabled={i === 0} onClick={() => move(i, -1)} aria-label={tr("Move up")}>
               ↑
             </button>
-            <button className="btn small ghost" disabled={i === groups.length - 1} onClick={() => move(i, 1)} aria-label="Move down">
+            <button className="btn small ghost" disabled={i === groups.length - 1} onClick={() => move(i, 1)} aria-label={tr("Move down")}>
               ↓
             </button>
-            <button className="btn small ghost" onClick={() => onChange(groups.filter((_, j) => j !== i))}>
-              Remove
-            </button>
+            <button className="btn small ghost" onClick={() => onChange(groups.filter((_, j) => j !== i))}>{tr("Remove")}</button>
           </div>
           <div className="chips">
-            {g.apps.length === 0 && <span className="muted small">No apps yet: it stays hidden on the TV until you add some.</span>}
+            {g.apps.length === 0 && <span className="muted small">{tr("No apps yet: it stays hidden on the TV until you add some.")}</span>}
             {g.apps.map((p) => (
               <span key={p} className="chip-app">
-                {label(p)}
-                <button aria-label={`Take ${label(p)} out`} onClick={() => update(i, { ...g, apps: g.apps.filter((x) => x !== p) })}>
+                {tr(label(p))}
+                <button aria-label={tr(tr("Take {0} out", [label(p)]))} onClick={() => update(i, { ...g, apps: g.apps.filter((x) => x !== p) })}>
                   ×
                 </button>
               </span>
@@ -666,10 +625,10 @@ function Groups(props: { kind: 'rows' | 'folders'; title: string; hint: string; 
           </div>
           <select
             value=""
-            aria-label="Add an app"
+            aria-label={tr("Add an app")}
             onChange={(e) => e.target.value && update(i, { ...g, apps: [...g.apps, e.target.value] })}
           >
-            <option value="">Add an app…</option>
+            <option value="">{tr("Add an app…")}</option>
             {apps.filter((a) => !g.apps.includes(a.pkg)).map((a) => (
               <option key={a.pkg} value={a.pkg}>
                 {a.label}
@@ -714,12 +673,12 @@ function OrderList<T extends string>(props: { all: T[]; on: T[]; label: (t: T) =
           <li key={t} className={i < 0 ? 'off' : ''}>
             <label className="grow">
               <input type="checkbox" checked={i >= 0} onChange={(e) => onChange(e.target.checked ? [...on, t] : on.filter((x) => x !== t))} />
-              {props.label(t)}
+              {tr(props.label(t))}
             </label>
-            <button className="btn small ghost" disabled={i <= 0} onClick={() => move(t, -1)} aria-label="Earlier">
+            <button className="btn small ghost" disabled={i <= 0} onClick={() => move(t, -1)} aria-label={tr("Earlier")}>
               ↑
             </button>
-            <button className="btn small ghost" disabled={i < 0 || i === on.length - 1} onClick={() => move(t, 1)} aria-label="Later">
+            <button className="btn small ghost" disabled={i < 0 || i === on.length - 1} onClick={() => move(t, 1)} aria-label={tr("Later")}>
               ↓
             </button>
           </li>
@@ -736,7 +695,7 @@ function LayoutTab({ apps, cfg, set }: { apps: TvApp[]; cfg: HomeConfig; set: Se
         <HomePreview apps={apps} cfg={cfg} />
       </div>
       <div className="card">
-        <h2>Layout</h2>
+        <h2>{tr("Layout")}</h2>
         <div className="layout-pick">
           {LAYOUTS.map((l) => (
             <button key={l.id} className={cfg.layout === l.id ? 'on' : ''} onClick={() => set({ layout: l.id })} aria-pressed={cfg.layout === l.id}>
@@ -745,40 +704,36 @@ function LayoutTab({ apps, cfg, set }: { apps: TvApp[]; cfg: HomeConfig; set: Se
                   <i key={i} className={dim ? 'dim' : ''} style={{ left: `${x}%`, top: `${y}%`, width: `${w}%`, height: `${h}%` }} />
                 ))}
               </span>
-              <b>{l.label}</b>
-              <span className="muted small">{l.hint}</span>
+              <b>{tr(l.label)}</b>
+              <span className="muted small">{tr(l.hint)}</span>
             </button>
           ))}
         </div>
         {cfg.layout === 'shelf' && (
           <div style={{ marginTop: 14 }}>
-            <Slider label="Space above the apps" hint="Open wallpaper between the top bar and the first row." value={cfg.top_space} min={0} max={40} unit="%" onChange={(v) => set({ top_space: v }, 250)} />
+            <Slider label={tr("Space above the apps")} hint={tr("Open wallpaper between the top bar and the first row.")} value={cfg.top_space} min={0} max={40} unit="%" onChange={(v) => set({ top_space: v }, 250)} />
           </div>
         )}
       </div>
 
       <div className="grid-2">
         <div className="card">
-          <h2>Sections</h2>
-          <p className="muted small">Top to bottom. Untick one to hide it.</p>
-          <OrderList all={ALL_SECTIONS} on={cfg.sections} label={(s) => SECTION_LABEL[s]} onChange={(sections) => set({ sections })} />
+          <h2>{tr("Sections")}</h2>
+          <p className="muted small">{tr("Top to bottom. Untick one to hide it.")}</p>
+          <OrderList all={ALL_SECTIONS} on={cfg.sections} label={(s) => tr(SECTION_LABEL[s])} onChange={(sections) => set({ sections })} />
           <label className="field" style={{ marginTop: 14 }}>
-            <span>All apps title</span>
-            <span className="hint">Your own words for the heading above the grid. Empty keeps "All apps".</span>
-            <input type="text" maxLength={24} value={cfg.names.all_apps ?? ''} placeholder="All apps" onChange={(e) => set({ names: { ...cfg.names, all_apps: e.target.value } }, 700)} />
+            <span>{tr("All apps title")}</span>
+            <span className="hint">{tr("Your own words for the heading above the grid. Empty keeps \"All apps\".")}</span>
+            <input type="text" maxLength={24} value={cfg.names.all_apps ?? ''} placeholder={tr("All apps")} onChange={(e) => set({ names: { ...cfg.names, all_apps: e.target.value } }, 700)} />
           </label>
           {cfg.sections.includes('recent') && (
-            <p className="small muted" style={{ marginTop: 10 }}>
-              Recently used shows the last 8 apps the TV opened, newest first, whichever way they were opened.
-            </p>
+            <p className="small muted" style={{ marginTop: 10 }}>{tr("Recently used shows the last 8 apps the TV opened, newest first, whichever way they were opened.")}</p>
           )}
         </div>
         <div className="card">
-          <h2>Quick settings</h2>
+          <h2>{tr("Quick settings")}</h2>
           <p className="muted small">
-            {cfg.layout === 'rail' ? 'Icons in the rail.' : cfg.layout === 'split' ? 'At the bottom of the left side.' : 'Under the clock and date.'} The TV hides any it can't open, such as Inputs on a box
-            without HDMI inputs, or Search when the search app is switched off.
-          </p>
+            {tr(cfg.layout === 'rail' ? 'Icons in the rail.' : cfg.layout === 'split' ? 'At the bottom of the left side.' : 'Under the clock and date.')}{tr(" The TV hides any it can't open, such as Inputs on a box without HDMI inputs, or Search when the search app is switched off.")}</p>
           <OrderList<QuickEntry>
             all={[...ALL_QUICK, ...cfg.quick.filter((q) => quickApp(q))]}
             on={cfg.quick}
@@ -787,8 +742,8 @@ function LayoutTab({ apps, cfg, set }: { apps: TvApp[]; cfg: HomeConfig; set: Se
               const missing = pkg ? !apps.some((a) => a.pkg === pkg) : cfg.quick_available && !cfg.quick_available.includes(q as QuickId)
               return (
                 <>
-                  <span className="quick-mark"><QuickMark q={q} apps={apps} /></span> {quickLabel(q, apps)}
-                  {missing && <span className="muted small">not on this TV</span>}
+                  <span className="quick-mark"><QuickMark q={q} apps={apps} /></span> {tr(quickLabel(q, apps))}
+                  {missing && <span className="muted small">{tr("not on this TV")}</span>}
                 </>
               )
             }}
@@ -797,28 +752,26 @@ function LayoutTab({ apps, cfg, set }: { apps: TvApp[]; cfg: HomeConfig; set: Se
           <QuickAppAdd apps={apps} quick={cfg.quick} onAdd={(pkg) => set({ quick: [...cfg.quick, `app:${pkg}`] })} />
           {cfg.quick.some((q) => !quickApp(q)) && (
             <details style={{ marginTop: 14 }}>
-              <summary className="small muted" style={{ cursor: 'pointer' }}>
-                Rename the buttons
-              </summary>
-              <p className="muted small">In your own language, for example. Leave a box empty to keep the English name.</p>
+              <summary className="small muted" style={{ cursor: 'pointer' }}>{tr("Rename the buttons")}</summary>
+              <p className="muted small">{tr("In your own language, for example. Leave a box empty to keep the English name.")}</p>
               {cfg.quick.filter((q) => !quickApp(q)).map((q) => (
                 <label key={q} className="field">
-                  <span>{QUICK_LABEL[q as QuickId]}</span>
-                  <input type="text" maxLength={24} value={cfg.names[q as QuickId] ?? ''} placeholder={QUICK_LABEL[q as QuickId]} onChange={(e) => set({ names: { ...cfg.names, [q]: e.target.value } }, 700)} />
+                  <span>{tr(QUICK_LABEL[q as QuickId])}</span>
+                  <input type="text" maxLength={24} value={cfg.names[q as QuickId] ?? ''} placeholder={tr(QUICK_LABEL[q as QuickId])} onChange={(e) => set({ names: { ...cfg.names, [q]: e.target.value } }, 700)} />
                 </label>
               ))}
             </details>
           )}
           {cfg.quick.includes('inputs') && (
-            <Toggle label="Live TV in Inputs" hint="The TV's tuner, at the top of the Inputs menu. Switch it off if you don't watch TV channels." checked={cfg.live_tv} onChange={(v) => set({ live_tv: v })} />
+            <Toggle label={tr("Live TV in Inputs")} hint={tr("The TV's tuner, at the top of the Inputs menu. Switch it off if you don't watch TV channels.")} checked={cfg.live_tv} onChange={(v) => set({ live_tv: v })} />
           )}
         </div>
       </div>
 
       <div className="card">
         <Toggle
-          label="Back to the input at power on"
-          hint="If the TV was on an HDMI input or TV channels when it went to sleep, it goes back there when you turn it on. Otherwise it starts on Home as usual. This uses the same accessibility service as Remote buttons."
+          label={tr("Back to the input at power on")}
+          hint={tr("If the TV was on an HDMI input or TV channels when it went to sleep, it goes back there when you turn it on. Otherwise it starts on Home as usual. This uses the same accessibility service as Remote buttons.")}
           checked={cfg.power_on_input}
           onChange={(v) => set({ power_on_input: v })}
         />
@@ -826,8 +779,8 @@ function LayoutTab({ apps, cfg, set }: { apps: TvApp[]; cfg: HomeConfig; set: Se
 
       <div className="card">
         <Toggle
-          label="Edit on the TV (experimental)"
-          hint="Adds a Customize icon to the top bar, which opens an editor for the layout, look, widgets, apps, music bars and fireplace from the remote. With App lock on, it asks for the PIN. Turn it off to take the icon away again."
+          label={tr("Edit on the TV (experimental)")}
+          hint={tr("Adds a Customize icon to the top bar, which opens an editor for the layout, look, widgets, apps, music bars and fireplace from the remote. With App lock on, it asks for the PIN. Turn it off to take the icon away again.")}
           checked={cfg.edit_on_tv}
           onChange={(v) => {
             const rest = cfg.quick.filter((q) => q !== 'customize')
@@ -838,64 +791,62 @@ function LayoutTab({ apps, cfg, set }: { apps: TvApp[]; cfg: HomeConfig; set: Se
       </div>
 
       <div className="card">
-        <h2>Sizes</h2>
-        <Slider label="Dock tiles" value={cfg.dock_scale} min={60} max={150} step={5} unit="%" onChange={(v) => set({ dock_scale: v }, 250)} />
-        <Slider label="Row and folder tiles" value={cfg.tile_scale} min={60} max={150} step={5} unit="%" onChange={(v) => set({ tile_scale: v }, 250)} />
-        <Slider label="Apps per row in All apps" value={cfg.columns} min={3} max={8} onChange={(v) => set({ columns: v }, 250)} />
-        <p style={{ margin: '14px 0 8px', fontWeight: 600 }}>App names</p>
+        <h2>{tr("Sizes")}</h2>
+        <Slider label={tr("Dock tiles")} value={cfg.dock_scale} min={60} max={150} step={5} unit="%" onChange={(v) => set({ dock_scale: v }, 250)} />
+        <Slider label={tr("Row and folder tiles")} value={cfg.tile_scale} min={60} max={150} step={5} unit="%" onChange={(v) => set({ tile_scale: v }, 250)} />
+        <Slider label={tr("Apps per row in All apps")} value={cfg.columns} min={3} max={8} onChange={(v) => set({ columns: v }, 250)} />
+        <p style={{ margin: '14px 0 8px', fontWeight: 600 }}>{tr("App names")}</p>
         <div className="seg">
           {([['always', 'Always', { show_names: true, name_focus: false }], ['focus', 'Focused app only', { show_names: true, name_focus: true }], ['off', 'Off', { show_names: false, name_focus: false }]] as const).map(([id, label, v]) => (
             <button key={id} className={(!cfg.show_names ? 'off' : cfg.name_focus ? 'focus' : 'always') === id ? 'on' : ''} onClick={() => set(v)}>
-              {label}
+              {tr(label)}
             </button>
           ))}
         </div>
         <p className="small muted">
-          {!cfg.show_names ? 'No names under tiles. Apps without a TV banner still show their name on the tile.'
-            : cfg.name_focus ? 'Only the app you move onto shows its name. The others stay hidden.' : 'Every tile shows its name underneath.'}
+          {tr(!cfg.show_names ? 'No names under tiles. Apps without a TV banner still show their name on the tile.'
+            : cfg.name_focus ? 'Only the app you move onto shows its name. The others stay hidden.' : 'Every tile shows its name underneath.')}
         </p>
       </div>
 
       <div className="grid-2">
         <div className="card">
-          <h2>Clock</h2>
+          <h2>{tr("Clock")}</h2>
           <div className="seg">
             {([['time_date', 'Time and date'], ['time', 'Time only'], ['off', 'Off']] as const).map(([id, label]) => (
               <button key={id} className={cfg.clock === id ? 'on' : ''} onClick={() => set({ clock: id })}>
-                {label}
+                {tr(label)}
               </button>
             ))}
           </div>
         </div>
         <div className="card">
-          <h2>Greeting</h2>
+          <h2>{tr("Greeting")}</h2>
           <label className="field">
-            <span>Your name</span>
-            <span className="hint">Shows "Good evening, name". Leave it empty for no greeting.</span>
-            <input type="text" maxLength={40} value={cfg.greeting} placeholder="e.g. Sam" onChange={(e) => set({ greeting: e.target.value }, 700)} />
+            <span>{tr("Your name")}</span>
+            <span className="hint">{tr("Shows \"Good evening, name\". Leave it empty for no greeting.")}</span>
+            <input type="text" maxLength={40} value={cfg.greeting} placeholder={tr("e.g. Sam")} onChange={(e) => set({ greeting: e.target.value }, 700)} />
           </label>
         </div>
       </div>
 
       <div className="card">
-        <h2>Idle screen</h2>
-        <p className="muted small">
-          When nobody has pressed a button for this long, Home fades out the apps and shows just the wallpaper{cfg.clock === 'off' ? '' : ' and a large clock'}. Any button brings everything back.
-        </p>
+        <h2>{tr("Idle screen")}</h2>
+        <p className="muted small">{tr("When nobody has pressed a button for this long, Home fades out the apps and shows just the wallpaper")}{tr(cfg.clock === 'off' ? '' : ' and a large clock')}{tr(". Any button brings everything back.")}</p>
         <div className="seg">
           {IDLE_CHOICES.map(([m, label]) => (
             <button key={m} className={cfg.idle_minutes === m ? 'on' : ''} onClick={() => set({ idle_minutes: m })}>
-              {label}
+              {tr(label)}
             </button>
           ))}
         </div>
-        <p style={{ margin: '14px 0 8px', fontWeight: 600 }}>What it shows</p>
+        <p style={{ margin: '14px 0 8px', fontWeight: 600 }}>{tr("What it shows")}</p>
         <div className="seg">
           {([['corner', 'Clock in the corner'], ['center', 'Big clock'], ['photos', 'Photos']] as const).map(([id, label]) => (
-            <button key={id} className={cfg.idle_style === id ? 'on' : ''} onClick={() => set({ idle_style: id })}>{label}</button>
+            <button key={id} className={cfg.idle_style === id ? 'on' : ''} onClick={() => set({ idle_style: id })}>{tr(label)}</button>
           ))}
         </div>
-        {cfg.idle_style === 'photos' && <p className="small muted">The slideshow's photos, or the themes' pictures when there are none, a new one every 20 seconds.</p>}
+        {cfg.idle_style === 'photos' && <p className="small muted">{tr("The slideshow's photos, or the themes' pictures when there are none, a new one every 20 seconds.")}</p>}
       </div>
     </>
   )
@@ -907,15 +858,15 @@ function QuickAppAdd({ apps, quick, onAdd }: { apps: TvApp[]; quick: QuickEntry[
   const free = apps.filter((a) => !quick.includes(`app:${a.pkg}`)).sort((a, b) => a.label.localeCompare(b.label))
   return (
     <div className="row" style={{ marginTop: 10 }}>
-      <select value="" aria-label="Add an app icon" disabled={used >= MAX_QUICK_APPS || !free.length} onChange={(e) => e.target.value && onAdd(e.target.value)}>
-        <option value="">{used >= MAX_QUICK_APPS ? `${MAX_QUICK_APPS} apps is the most` : 'Add an app as an icon…'}</option>
+      <select value="" aria-label={tr("Add an app icon")} disabled={used >= MAX_QUICK_APPS || !free.length} onChange={(e) => e.target.value && onAdd(e.target.value)}>
+        <option value="">{tr(used >= MAX_QUICK_APPS ? tr("{0} apps is the most", [MAX_QUICK_APPS]) : 'Add an app as an icon…')}</option>
         {free.map((a) => (
           <option key={a.pkg} value={a.pkg}>
             {a.label}
           </option>
         ))}
       </select>
-      <span className="muted small">For apps you open a lot, like a VPN. Untick one to remove it.</span>
+      <span className="muted small">{tr("For apps you open a lot, like a VPN. Untick one to remove it.")}</span>
     </div>
   )
 }
@@ -923,8 +874,8 @@ function QuickAppAdd({ apps, quick, onAdd }: { apps: TvApp[]; quick: QuickEntry[
 function Colour({ label, hint, value, onChange }: { label: string; hint?: string; value: string; onChange: (c: string, wait?: number) => void }): ReactNode {
   return (
     <label className="field">
-      <span>{label}</span>
-      {hint && <span className="hint">{hint}</span>}
+      <span>{tr(label)}</span>
+      {hint && <span className="hint">{tr(hint)}</span>}
       <div className="row">
         <input type="color" value={value} onChange={(e) => onChange(e.target.value.toUpperCase(), 400)} />
         <input type="text" value={value} style={{ width: 110 }} onChange={(e) => /^#[0-9a-fA-F]{6}$/.test(e.target.value) && onChange(e.target.value.toUpperCase())} />
@@ -985,46 +936,32 @@ function ThemesCard({ themes, busy, cfg, set }: { themes: ThemeActions; busy: bo
   const [editing, setEditing] = useState(false)
   return (
     <div className="card">
-      <h2>Themes</h2>
-      <p className="muted">
-        A theme sets the wallpaper, colours, tile sizes and music bars in one go. Your apps, rows and layout stay as they are.
-      </p>
+      <h2>{tr("Themes")}</h2>
+      <p className="muted">{tr("A theme sets the wallpaper, colours, tile sizes and music bars in one go. Your apps, rows and layout stay as they are.")}</p>
       {themes.backup?.savedAt ? (
         <div className="notice row" style={{ justifyContent: 'space-between' }}>
-          <span>
-            Your look from {new Date(themes.backup.savedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} is saved
-            {themes.backup.withWallpaper ? '' : ', without its wallpaper'}.
+          <span>{tr("Your look from ")}{tr(new Date(themes.backup.savedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }))}{tr(" is saved")}{tr(themes.backup.withWallpaper ? '' : ', without its wallpaper')}.
           </span>
           <span className="row" style={{ gap: 8 }}>
-            <button className="btn small" disabled={busy} onClick={themes.restore}>
-              Put it back
-            </button>
-            <button className="btn small ghost" disabled={busy} onClick={themes.forget}>
-              Forget it
-            </button>
+            <button className="btn small" disabled={busy} onClick={themes.restore}>{tr("Put it back")}</button>
+            <button className="btn small ghost" disabled={busy} onClick={themes.forget}>{tr("Forget it")}</button>
           </span>
         </div>
       ) : (
-        <p className="small muted">Your current look is saved before the first theme, so you can always put it back.</p>
+        <p className="small muted">{tr("Your current look is saved before the first theme, so you can always put it back.")}</p>
       )}
       <ThemeGrid themes={BUILT_IN_THEMES} actions={themes} busy={busy} />
       {editing ? <ThemeEditor themes={themes} busy={busy} onClose={() => setEditing(false)} /> : null}
       <div className="row" style={{ marginTop: 12 }}>
-        <button className="btn ghost" disabled={busy || !BUILT_IN_THEMES.some((t) => themes.current.startsWith(`${t.id}:`))} onClick={themes.another}>
-          Another picture
-        </button>
+        <button className="btn ghost" disabled={busy || !BUILT_IN_THEMES.some((t) => themes.current.startsWith(`${t.id}:`))} onClick={themes.another}>{tr("Another picture")}</button>
         <button className="btn ghost" disabled={busy} onClick={themes.toTv}>
-          {themes.onTv ? 'Put the themes on the TV again' : 'Put the themes on the TV'}
+          {tr(themes.onTv ? 'Put the themes on the TV again' : 'Put the themes on the TV')}
         </button>
         {!editing && (
-          <button className="btn ghost" disabled={busy} onClick={() => setEditing(true)}>
-            Make your own…
-          </button>
+          <button className="btn ghost" disabled={busy} onClick={() => setEditing(true)}>{tr("Make your own…")}</button>
         )}
       </div>
-      <p className="small muted" style={{ marginTop: 8 }}>
-        Each theme has {THEME_PICTURES} pictures. With the themes on the TV, you can switch them with the remote: add the Themes icon to the top bar
-        on the Layout tab, or give a remote button the Themes job. {themes.onTv ? `${themes.onTv} themes are on the TV now.` : 'It takes a minute or two.'}
+      <p className="small muted" style={{ marginTop: 8 }}>{tr("Each theme has ")}{tr(THEME_PICTURES)}{tr(" pictures. With the themes on the TV, you can switch them with the remote: add the Themes icon to the top bar on the Layout tab, or give a remote button the Themes job. ")}{tr(themes.onTv ? tr("{0} themes are on the TV now.", [themes.onTv]) : 'It takes a minute or two.')}
       </p>
       <input
         ref={file}
@@ -1038,24 +975,15 @@ function ThemesCard({ themes, busy, cfg, set }: { themes: ThemeActions; busy: bo
         }}
       />
       <div className="row" style={{ marginTop: 16 }}>
-        <input type="text" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} aria-label="Theme name" style={{ width: 180 }} />
-        <button className="btn" disabled={busy || !name.trim()} onClick={() => themes.save(name)}>
-          Save this look…
-        </button>
-        <button className="btn ghost" disabled={busy || !name.trim() || !cfg.has_wallpaper} title={cfg.has_wallpaper ? undefined : 'Put a wallpaper on first; a theme needs a picture.'} onClick={() => themes.saveOnTv(name)}>
-          Save to the TV
-        </button>
-        <button className="btn ghost" disabled={busy} onClick={() => file.current?.click()}>
-          Load a theme file…
-        </button>
+        <input type="text" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} aria-label={tr("Theme name")} style={{ width: 180 }} />
+        <button className="btn" disabled={busy || !name.trim()} onClick={() => themes.save(name)}>{tr("Save this look…")}</button>
+        <button className="btn ghost" disabled={busy || !name.trim() || !cfg.has_wallpaper} title={tr(cfg.has_wallpaper ? undefined : 'Put a wallpaper on first; a theme needs a picture.')} onClick={() => themes.saveOnTv(name)}>{tr("Save to the TV")}</button>
+        <button className="btn ghost" disabled={busy} onClick={() => file.current?.click()}>{tr("Load a theme file…")}</button>
       </div>
-      <p className="small muted" style={{ marginTop: 8, marginBottom: 0 }}>
-        Theme files end in .{THEME_EXT}. Share one and anyone can load it on their TV. Save to the TV adds this look and wallpaper to the
-        TV&apos;s themes, or updates the one with the same name, and leaves the others alone.
-      </p>
+      <p className="small muted" style={{ marginTop: 8, marginBottom: 0 }}>{tr("Theme files end in .")}{tr(THEME_EXT)}{tr(". Share one and anyone can load it on their TV. Save to the TV adds this look and wallpaper to the TV's themes, or updates the one with the same name, and leaves the others alone.")}</p>
       <Toggle
-        label="Each theme keeps its changes"
-        hint="Change the look on the TV while a theme is on, and that theme keeps it: colours, sizes, glass, shading, spacing and music bars. Rows, folders, App lock and buttons stay the same for every theme. Works with day and night too."
+        label={tr("Each theme keeps its changes")}
+        hint={tr("Change the look on the TV while a theme is on, and that theme keeps it: colours, sizes, glass, shading, spacing and music bars. Rows, folders, App lock and buttons stay the same for every theme. Works with day and night too.")}
         checked={cfg.theme_memory}
         onChange={(v) => set({ theme_memory: v })}
       />
@@ -1070,83 +998,83 @@ function LookTab(props: { cfg: HomeConfig; set: SetFn; busy: boolean; wallpaper:
     <>
       <ThemesCard themes={themes} busy={busy} cfg={cfg} set={set} />
       <div className="card">
-        <h2>Accent colour</h2>
-        <p className="muted">For the focus glow or outline and the music bars.</p>
+        <h2>{tr("Accent colour")}</h2>
+        <p className="muted">{tr("For the focus glow or outline and the music bars.")}</p>
         <div className="row">
           {ACCENTS.map((c) => (
             <button
               key={c}
-              aria-label={c}
-              title={c}
+              aria-label={tr(c)}
+              title={tr(c)}
               onClick={() => set({ accent: c })}
               style={{ background: c, width: 32, height: 32, borderRadius: 8, cursor: 'pointer', border: cfg.accent.toUpperCase() === c ? '3px solid var(--navy)' : '1px solid var(--line)' }}
             />
           ))}
-          <input type="color" value={cfg.accent} onChange={(e) => set({ accent: e.target.value.toUpperCase() }, 400)} aria-label="Pick any colour" />
+          <input type="color" value={cfg.accent} onChange={(e) => set({ accent: e.target.value.toUpperCase() }, 400)} aria-label={tr("Pick any colour")} />
         </div>
       </div>
 
       <div className="card">
-        <h2>Focus</h2>
-        <p className="muted">How the tile under the remote's cursor stands out.</p>
+        <h2>{tr("Focus")}</h2>
+        <p className="muted">{tr("How the tile under the remote's cursor stands out.")}</p>
         <div className="seg">
           {([['lift', 'Lift'], ['glow', 'Glow'], ['outline', 'Outline'], ['none', 'None']] as const).map(([id, label]) => (
             <button key={id} className={cfg.focus === id ? 'on' : ''} onClick={() => set({ focus: id })}>
-              {label}
+              {tr(label)}
             </button>
           ))}
         </div>
         <p className="small muted">
-          {cfg.focus === 'lift' ? 'The tile floats on a soft shadow with a faint halo in your accent, and a light sweeps across it once.'
-            : cfg.focus === 'glow' ? 'A glow in your accent and a white ring.' : cfg.focus === 'outline' ? 'A line in your accent.' : 'Only the tile colour changes.'}
+          {tr(cfg.focus === 'lift' ? 'The tile floats on a soft shadow with a faint halo in your accent, and a light sweeps across it once.'
+            : cfg.focus === 'glow' ? 'A glow in your accent and a white ring.' : cfg.focus === 'outline' ? 'A line in your accent.' : 'Only the tile colour changes.')}
         </p>
-        {cfg.focus === 'lift' && <Toggle label="Lean toward the move" hint="The tile tilts a little the way you pressed, then settles." checked={cfg.tilt} onChange={(v) => set({ tilt: v })} />}
-        <Toggle label="Keep the focused tile in place" hint="The row slides under it, one step in from the left." checked={cfg.pin_focus} onChange={(v) => set({ pin_focus: v })} />
-        <Toggle label="Background takes the app's colour" hint="A tint of the focused app's colour washes in from the top." checked={cfg.follow_colour} onChange={(v) => set({ follow_colour: v })} />
+        {cfg.focus === 'lift' && <Toggle label={tr("Lean toward the move")} hint={tr("The tile tilts a little the way you pressed, then settles.")} checked={cfg.tilt} onChange={(v) => set({ tilt: v })} />}
+        <Toggle label={tr("Keep the focused tile in place")} hint={tr("The row slides under it, one step in from the left.")} checked={cfg.pin_focus} onChange={(v) => set({ pin_focus: v })} />
+        <Toggle label={tr("Background takes the app's colour")} hint={tr("A tint of the focused app's colour washes in from the top.")} checked={cfg.follow_colour} onChange={(v) => set({ follow_colour: v })} />
       </div>
 
       <div className="card">
-        <h2>Font</h2>
-        <p className="muted">For names, headings and menus on the TV. The clock keeps its own.</p>
+        <h2>{tr("Font")}</h2>
+        <p className="muted">{tr("For names, headings and menus on the TV. The clock keeps its own.")}</p>
         <div className="seg" style={{ marginBottom: 18 }}>
           {([['default', 'Usual'], ['condensed', 'Condensed'], ['serif', 'Serif'], ['casual', 'Casual']] as const).map(([id, label]) => (
-            <button key={id} className={cfg.font === id ? 'on' : ''} onClick={() => set({ font: id })} style={{ fontFamily: FONT_CSS[id] }}>{label}</button>
+            <button key={id} className={cfg.font === id ? 'on' : ''} onClick={() => set({ font: id })} style={{ fontFamily: FONT_CSS[id] }}>{tr(label)}</button>
           ))}
         </div>
-        <h2>App icons</h2>
-        <p className="muted">Banners are each app's own TV picture. The other styles redraw every app's logo the same way, so the rows match.</p>
+        <h2>{tr("App icons")}</h2>
+        <p className="muted">{tr("Banners are each app's own TV picture. The other styles redraw every app's logo the same way, so the rows match.")}</p>
         <div className="seg">
           {([['banner', 'Banners'], ['colour', 'Colour'], ['mono', 'Mono'], ['duo', 'Duotone']] as const).map(([id, label]) => (
             <button key={id} className={cfg.icon_style === id ? 'on' : ''} onClick={() => set({ icon_style: id })}>
-              {label}
+              {tr(label)}
             </button>
           ))}
         </div>
         <p className="small muted">
-          {cfg.icon_style === 'banner' ? 'What every TV app ships with.'
+          {tr(cfg.icon_style === 'banner' ? 'What every TV app ships with.'
             : cfg.icon_style === 'colour' ? 'The logo in white on its brand colour.'
             : cfg.icon_style === 'mono' ? 'Every logo in one colour from your accent, on the same glass tile.'
-            : "Every logo in two shades of your accent, on your theme's colours."}
-          {cfg.icon_style !== 'banner' && ' An app without a usable logo shows its first letter.'}
+            : "Every logo in two shades of your accent, on your theme's colours.")}
+          {tr(cfg.icon_style !== 'banner' && ' An app without a usable logo shows its first letter.')}
         </p>
         {/* Shown under Banners too, so people find it: a banner is the app's own wide picture and keeps its shape. */}
-        <p style={{ margin: '14px 0 8px', fontWeight: 600 }}>Tile shape</p>
+        <p style={{ margin: '14px 0 8px', fontWeight: 600 }}>{tr("Tile shape")}</p>
         <div className="seg">
           {([['wide', 'Wide'], ['square', 'Square'], ['squircle', 'Squircle'], ['round', 'Round']] as const).map(([id, label]) => (
             <button key={id} className={cfg.icon_style !== 'banner' && cfg.tile_shape === id ? 'on' : ''} disabled={cfg.icon_style === 'banner'} onClick={() => set({ tile_shape: id })}>
-              {label}
+              {tr(label)}
             </button>
           ))}
         </div>
-        {cfg.icon_style === 'banner' && <p className="small muted">Pick Colour, Mono or Duotone to change the shape. Banners stay wide.</p>}
+        {cfg.icon_style === 'banner' && <p className="small muted">{tr("Pick Colour, Mono or Duotone to change the shape. Banners stay wide.")}</p>}
         {cfg.icon_style === 'mono' && (
-          <Slider label="Glass" hint="How much the tile behind each logo shows. Lower lets more of the wallpaper through." value={cfg.tile_glass} min={0} max={60} unit="%" onChange={(v) => set({ tile_glass: v }, 250)} />
+          <Slider label={tr("Glass")} hint={tr("How much the tile behind each logo shows. Lower lets more of the wallpaper through.")} value={cfg.tile_glass} min={0} max={60} unit="%" onChange={(v) => set({ tile_glass: v }, 250)} />
         )}
       </div>
 
       <div className="card">
-        <h2>Wallpaper</h2>
-        <p className="muted">{cfg.has_wallpaper ? 'A wallpaper is set.' : 'No wallpaper: the background colour shows.'}</p>
+        <h2>{tr("Wallpaper")}</h2>
+        <p className="muted">{tr(cfg.has_wallpaper ? 'A wallpaper is set.' : 'No wallpaper: the background colour shows.')}</p>
         <input
           ref={file}
           type="file"
@@ -1159,23 +1087,17 @@ function LookTab(props: { cfg: HomeConfig; set: SetFn; busy: boolean; wallpaper:
           }}
         />
         <div className="row" style={{ marginBottom: 12 }}>
-          <button className="btn" disabled={busy} onClick={() => file.current?.click()}>
-            Choose a picture…
-          </button>
-          <button className="btn" disabled={busy} onClick={() => wallpaper("Fetching today's Bing picture", async () => (await fetchBingDaily()).base64)}>
-            Bing picture of the day
-          </button>
+          <button className="btn" disabled={busy} onClick={() => file.current?.click()}>{tr("Choose a picture…")}</button>
+          <button className="btn" disabled={busy} onClick={() => wallpaper("Fetching today's Bing picture", async () => (await fetchBingDaily()).base64)}>{tr("Bing picture of the day")}</button>
           {cfg.has_wallpaper && (
-            <button className="btn ghost" disabled={busy} onClick={() => wallpaper('Removing the wallpaper', async () => null)}>
-              Remove
-            </button>
+            <button className="btn ghost" disabled={busy} onClick={() => wallpaper('Removing the wallpaper', async () => null)}>{tr("Remove")}</button>
           )}
         </div>
-        <Slider label="Darken the wallpaper" hint="Keeps names and the clock readable on bright pictures." value={cfg.wallpaper_dim} min={0} max={80} unit="%" onChange={(v) => set({ wallpaper_dim: v }, 300)} />
-        <Toggle label="Bing every day" hint="Bing's new picture becomes the wallpaper each day, while Home is on screen. Picking another wallpaper doesn't stop it; this switch does." checked={cfg.bing_daily} onChange={(v) => set({ bing_daily: v })} />
+        <Slider label={tr("Darken the wallpaper")} hint={tr("Keeps names and the clock readable on bright pictures.")} value={cfg.wallpaper_dim} min={0} max={80} unit="%" onChange={(v) => set({ wallpaper_dim: v }, 300)} />
+        <Toggle label={tr("Bing every day")} hint={tr("Bing's new picture becomes the wallpaper each day, while Home is on screen. Picking another wallpaper doesn't stop it; this switch does.")} checked={cfg.bing_daily} onChange={(v) => set({ bing_daily: v })} />
         <Shading cfg={cfg} set={set} />
-        <Toggle label="Sunrise when it changes" hint="A new wallpaper starts dim and the light comes in from the top. Off when the TV's animations are off." checked={cfg.intro} onChange={(v) => set({ intro: v })} />
-        <Colour label="Background colour" hint="Behind everything when there's no wallpaper. Keep it dark: text is white." value={cfg.background} onChange={(c, w) => set({ background: c }, w)} />
+        <Toggle label={tr("Sunrise when it changes")} hint={tr("A new wallpaper starts dim and the light comes in from the top. Off when the TV's animations are off.")} checked={cfg.intro} onChange={(v) => set({ intro: v })} />
+        <Colour label={tr("Background colour")} hint={tr("Behind everything when there's no wallpaper. Keep it dark: text is white.")} value={cfg.background} onChange={(c, w) => set({ background: c }, w)} />
       </div>
     </>
   )
@@ -1186,30 +1108,28 @@ function Shading({ cfg, set }: { cfg: HomeConfig; set: SetFn }): ReactNode {
   const changed = SHADING.some((k) => cfg[k] !== SHADING_DEFAULTS[k])
   return (
     <>
-      <p style={{ margin: '18px 0 4px', fontWeight: 600 }}>Shading</p>
-      <p className="small muted" style={{ marginTop: 0 }}>Shades in your background colour keep the top bar and the app names readable. Reach is how far down or up each one goes.</p>
+      <p style={{ margin: '18px 0 4px', fontWeight: 600 }}>{tr("Shading")}</p>
+      <p className="small muted" style={{ marginTop: 0 }}>{tr("Shades in your background colour keep the top bar and the app names readable. Reach is how far down or up each one goes.")}</p>
       {cfg.layout === 'shelf' ? (
         <>
-          <Slider label="Top shade" value={cfg.shade_top} min={0} max={100} unit="%" onChange={(v) => set({ shade_top: v }, 300)} />
-          <Slider label="Top shade reach" value={cfg.shade_top_reach} min={0} max={100} unit="%" onChange={(v) => set({ shade_top_reach: v }, 300)} />
+          <Slider label={tr("Top shade")} value={cfg.shade_top} min={0} max={100} unit="%" onChange={(v) => set({ shade_top: v }, 300)} />
+          <Slider label={tr("Top shade reach")} value={cfg.shade_top_reach} min={0} max={100} unit="%" onChange={(v) => set({ shade_top_reach: v }, 300)} />
         </>
       ) : (
-        <p className="small muted">The top shade is part of the Shelf layout.</p>
+        <p className="small muted">{tr("The top shade is part of the Shelf layout.")}</p>
       )}
-      <Slider label="Bottom shade" value={cfg.shade_bottom} min={0} max={100} unit="%" onChange={(v) => set({ shade_bottom: v }, 300)} />
-      <Slider label="Bottom shade reach" value={cfg.shade_bottom_reach} min={0} max={100} unit="%" onChange={(v) => set({ shade_bottom_reach: v }, 300)} />
+      <Slider label={tr("Bottom shade")} value={cfg.shade_bottom} min={0} max={100} unit="%" onChange={(v) => set({ shade_bottom: v }, 300)} />
+      <Slider label={tr("Bottom shade reach")} value={cfg.shade_bottom_reach} min={0} max={100} unit="%" onChange={(v) => set({ shade_bottom_reach: v }, 300)} />
       {cfg.follow_colour ? (
         <>
-          <Slider label="App colour" hint="The focused app's colour, washing in from the top." value={cfg.wash} min={0} max={100} unit="%" onChange={(v) => set({ wash: v }, 300)} />
-          <Slider label="App colour reach" value={cfg.wash_reach} min={10} max={100} unit="%" onChange={(v) => set({ wash_reach: v }, 300)} />
+          <Slider label={tr("App colour")} hint={tr("The focused app's colour, washing in from the top.")} value={cfg.wash} min={0} max={100} unit="%" onChange={(v) => set({ wash: v }, 300)} />
+          <Slider label={tr("App colour reach")} value={cfg.wash_reach} min={10} max={100} unit="%" onChange={(v) => set({ wash_reach: v }, 300)} />
         </>
       ) : (
-        <p className="small muted">Turn on Background takes the app's colour, under Focus, to set its strength and reach here.</p>
+        <p className="small muted">{tr("Turn on Background takes the app's colour, under Focus, to set its strength and reach here.")}</p>
       )}
       {changed && (
-        <button className="btn ghost" style={{ marginTop: 4 }} onClick={() => set(Object.fromEntries(SHADING.map((k) => [k, SHADING_DEFAULTS[k]])))}>
-          Back to the usual shading
-        </button>
+        <button className="btn ghost" style={{ marginTop: 4 }} onClick={() => set(Object.fromEntries(SHADING.map((k) => [k, SHADING_DEFAULTS[k]])))}>{tr("Back to the usual shading")}</button>
       )}
     </>
   )
@@ -1249,28 +1169,22 @@ function WidgetsTab({ cfg, set }: { cfg: HomeConfig; set: SetFn }): ReactNode {
     <>
       <div className="card">
         <Toggle
-          label="Now playing"
-          hint="A card with what any music or video app is playing, with play, pause and next. It shows only while something is loaded. The TV lets CleanMyTV Home see which app is playing; it reads no notifications."
+          label={tr("Now playing")}
+          hint={tr("A card with what any music or video app is playing, with play, pause and next. It shows only while something is loaded. The TV lets CleanMyTV Home see which app is playing; it reads no notifications.")}
           checked={playing}
           onChange={(v) => set({ sections: v ? ['nowplaying', ...cfg.sections.filter((s) => s !== 'nowplaying')] : cfg.sections.filter((s) => s !== 'nowplaying') })}
         />
-        {playing && <p className="small muted" style={{ margin: '8px 0 0' }}>Move it up or down in Layout → Sections.</p>}
+        {playing && <p className="small muted" style={{ margin: '8px 0 0' }}>{tr("Move it up or down in Layout → Sections.")}</p>}
       </div>
 
       <div className="card">
-        <h2>Weather</h2>
-        <p className="muted">
-          The temperature, today's high and low, and the sky next to the clock. It comes from Open-Meteo, or from MET Norway when the TV
-          can't reach Open-Meteo. Both are free, with no account. The TV asks every 30 minutes.
-        </p>
+        <h2>{tr("Weather")}</h2>
+        <p className="muted">{tr("The temperature, today's high and low, and the sky next to the clock. It comes from Open-Meteo, or from MET Norway when the TV can't reach Open-Meteo. Both are free, with no account. The TV asks every 30 minutes.")}</p>
         {cfg.weather_place ? (
           <div className="row" style={{ marginBottom: 14 }}>
-            <span>
-              Showing the weather for <b>{cfg.weather_place}</b>
+            <span>{tr("Showing the weather for ")}<b>{tr(cfg.weather_place)}</b>
             </span>
-            <button className="btn small ghost" onClick={() => set({ weather_place: '' })}>
-              Turn off
-            </button>
+            <button className="btn small ghost" onClick={() => set({ weather_place: '' })}>{tr("Turn off")}</button>
           </div>
         ) : null}
         <form
@@ -1280,21 +1194,21 @@ function WidgetsTab({ cfg, set }: { cfg: HomeConfig; set: SetFn }): ReactNode {
             void search()
           }}
         >
-          <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Town or city" style={{ width: 240 }} />
+          <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tr("Town or city")} style={{ width: 240 }} />
           <button className="btn" type="submit" disabled={searching || query.trim().length < 2}>
-            {cfg.weather_place ? 'Change place' : 'Find'}
+            {tr(cfg.weather_place ? 'Change place' : 'Find')}
           </button>
-          {searching && <Busy text="Searching" />}
+          {searching && <Busy text={tr("Searching")} />}
         </form>
-        {error && <div className="notice error" style={{ marginTop: 12, marginBottom: 0 }}>{error}</div>}
+        {error && <div className="notice error" style={{ marginTop: 12, marginBottom: 0 }}>{tr(error)}</div>}
         {places && (
           <ul className="place-list">
-            {places.length === 0 && <li className="small muted">No place by that name. Try the nearest town.</li>}
+            {places.length === 0 && <li className="small muted">{tr("No place by that name. Try the nearest town.")}</li>}
             {places.map((p) => (
               <li key={`${p.lat},${p.lon}`}>
                 <button className="btn small ghost" onClick={() => pick(p)}>
                   <b>{p.name}</b>
-                  {p.detail && <span className="muted">&nbsp;· {p.detail}</span>}
+                  {p.detail && <span className="muted">&nbsp;· {tr(p.detail)}</span>}
                 </button>
               </li>
             ))}
@@ -1303,7 +1217,7 @@ function WidgetsTab({ cfg, set }: { cfg: HomeConfig; set: SetFn }): ReactNode {
         <div className="seg" style={{ marginTop: 14 }}>
           {([['c', '°C'], ['f', '°F']] as const).map(([id, label]) => (
             <button key={id} className={cfg.weather_unit === id ? 'on' : ''} onClick={() => set({ weather_unit: id })}>
-              {label}
+              {tr(label)}
             </button>
           ))}
         </div>
@@ -1311,8 +1225,8 @@ function WidgetsTab({ cfg, set }: { cfg: HomeConfig; set: SetFn }): ReactNode {
 
       <div className="card">
         <Toggle
-          label="Free memory"
-          hint="How much memory the TV has free, under the clock, like 1.4 of 2 GB free. Add Clean memory in Layout → Quick settings to close apps left running in the background from the TV."
+          label={tr("Free memory")}
+          hint={tr("How much memory the TV has free, under the clock, like 1.4 of 2 GB free. Add Clean memory in Layout → Quick settings to close apps left running in the background from the TV.")}
           checked={cfg.memory}
           onChange={(v) => set({ memory: v })}
         />
@@ -1326,8 +1240,8 @@ function MusicTab({ cfg, set }: { cfg: HomeConfig; set: SetFn }): ReactNode {
     <>
       <div className="card">
         <Toggle
-          label="Music bars"
-          hint="Bars along the bottom of the home screen that move with music or video playing on the TV. The remote's clicks don't set them off. Add the Music bars icon in Layout → Quick settings to turn them on and off from the TV."
+          label={tr("Music bars")}
+          hint={tr("Bars along the bottom of the home screen that move with music or video playing on the TV. The remote's clicks don't set them off. Add the Music bars icon in Layout → Quick settings to turn them on and off from the TV.")}
           checked={cfg.visualiser}
           onChange={(v) => set({ visualiser: v })}
         />
@@ -1336,29 +1250,29 @@ function MusicTab({ cfg, set }: { cfg: HomeConfig; set: SetFn }): ReactNode {
       {cfg.visualiser && (
         <>
           <div className="card">
-            <h2>Style</h2>
+            <h2>{tr("Style")}</h2>
             <div className="seg" style={{ marginBottom: 12 }}>
               {([['bars', 'Bars'], ['mirror', 'Mirrored'], ['wave', 'Wave']] as const).map(([id, label]) => (
                 <button key={id} className={cfg.viz_style === id ? 'on' : ''} onClick={() => set({ viz_style: id })}>
-                  {label}
+                  {tr(label)}
                 </button>
               ))}
             </div>
             <div className="seg" style={{ marginBottom: 12 }}>
               {([['accent', 'Accent colour'], ['rainbow', 'Rainbow'], ['white', 'White']] as const).map(([id, label]) => (
                 <button key={id} className={cfg.viz_colour === id ? 'on' : ''} onClick={() => set({ viz_colour: id })}>
-                  {label}
+                  {tr(label)}
                 </button>
               ))}
             </div>
-            {cfg.viz_style !== 'wave' && <Toggle label="Peak dots" hint="A small mark above each bar that falls slowly." checked={cfg.viz_peaks} onChange={(v) => set({ viz_peaks: v })} />}
+            {cfg.viz_style !== 'wave' && <Toggle label={tr("Peak dots")} hint={tr("A small mark above each bar that falls slowly.")} checked={cfg.viz_peaks} onChange={(v) => set({ viz_peaks: v })} />}
           </div>
           <div className="card">
-            <h2>Size and feel</h2>
-            <Slider label="Bars" value={cfg.viz_bars} min={8} max={64} step={4} onChange={(v) => set({ viz_bars: v }, 300)} />
-            <Slider label="Height" hint="How much of the screen they can reach." value={cfg.viz_height} min={4} max={40} unit="%" onChange={(v) => set({ viz_height: v }, 300)} />
-            <Slider label="Opacity" value={cfg.viz_opacity} min={20} max={100} unit="%" onChange={(v) => set({ viz_opacity: v }, 300)} />
-            <Slider label="Sensitivity" hint="Higher makes quiet music move more." value={cfg.viz_sensitivity} min={25} max={300} step={5} unit="%" onChange={(v) => set({ viz_sensitivity: v }, 300)} />
+            <h2>{tr("Size and feel")}</h2>
+            <Slider label={tr("Bars")} value={cfg.viz_bars} min={8} max={64} step={4} onChange={(v) => set({ viz_bars: v }, 300)} />
+            <Slider label={tr("Height")} hint={tr("How much of the screen they can reach.")} value={cfg.viz_height} min={4} max={40} unit="%" onChange={(v) => set({ viz_height: v }, 300)} />
+            <Slider label={tr("Opacity")} value={cfg.viz_opacity} min={20} max={100} unit="%" onChange={(v) => set({ viz_opacity: v }, 300)} />
+            <Slider label={tr("Sensitivity")} hint={tr("Higher makes quiet music move more.")} value={cfg.viz_sensitivity} min={25} max={300} step={5} unit="%" onChange={(v) => set({ viz_sensitivity: v }, 300)} />
           </div>
         </>
       )}
@@ -1445,7 +1359,7 @@ function ButtonsTab(props: { cfg: HomeConfig; set: SetFn; apps: TvApp[]; setCfg:
 
   const mapped = new Set(cfg.buttons.map((b) => b.code))
   const update = (buttons: HomeButton[]): void => set({ buttons })
-  const label = (code: number): string => (names[code] ? `${keyName(names[code])} · ${code}` : `Button ${code}`)
+  const label = (code: number): string => (names[code] ? `${keyName(names[code])} · ${code}` : tr("Button {0}", [code]))
   const xiaomi = /xiaomi|redmi/i.test(props.brand ?? '')
   const miDone = cfg.buttons_on && cfg.buttons.some((b) => b.code === MI_BUTTON && b.action === 'home')
 
@@ -1466,19 +1380,14 @@ function ButtonsTab(props: { cfg: HomeConfig; set: SetFn; apps: TvApp[]; setCfg:
     <>
       {xiaomi && !miDone && (
         <div className="notice">
-          <p style={{ margin: '0 0 10px' }}>
-            The Mi button on Xiaomi remotes opens PatchWall, so it does nothing once PatchWall is off. CleanMyTV Home can make it go
-            Home instead. If it still does nothing after this, press Listen below and press the Mi button to see what it sends.
-          </p>
-          <button className="btn small" disabled={switching} onClick={miButtonHome}>
-            Make the Mi button go Home
-          </button>
+          <p style={{ margin: '0 0 10px' }}>{tr("The Mi button on Xiaomi remotes opens PatchWall, so it does nothing once PatchWall is off. CleanMyTV Home can make it go Home instead. If it still does nothing after this, press Listen below and press the Mi button to see what it sends.")}</p>
+          <button className="btn small" disabled={switching} onClick={miButtonHome}>{tr("Make the Mi button go Home")}</button>
         </div>
       )}
       <div className="card">
         <Toggle
-          label="Remote buttons"
-          hint="Lets CleanMyTV Home give buttons a new job, in every app. Only the buttons you add below are touched; every other button works as before. It uses an Android accessibility service, switched on and off from here."
+          label={tr("Remote buttons")}
+          hint={tr("Lets CleanMyTV Home give buttons a new job, in every app. Only the buttons you add below are touched; every other button works as before. It uses an Android accessibility service, switched on and off from here.")}
           checked={cfg.buttons_on}
           disabled={switching}
           onChange={toggle}
@@ -1487,27 +1396,23 @@ function ButtonsTab(props: { cfg: HomeConfig; set: SetFn; apps: TvApp[]; setCfg:
 
       <div className="card">
         <div className="card-head">
-          <h2>Find a button</h2>
+          <h2>{tr("Find a button")}</h2>
           <button className="btn small" onClick={() => setListening(!listening)}>
-            {listening ? 'Stop listening' : 'Listen'}
+            {tr(listening ? 'Stop listening' : 'Listen')}
           </button>
         </div>
-        <p className="muted small">
-          Press Listen, then press buttons on the remote. Each one the TV receives shows here with its code.
-          {!cfg.buttons_on && ' With Remote buttons off, only presses on the home screen show up.'} A button that never shows up
-          (often Power, volume or the mic) is handled before Android sees it, so it can't get a new job on this TV.
-        </p>
-        {listening && heard.length === 0 && <Busy text="Listening. Press a button on the remote" />}
+        <p className="muted small">{tr("Press Listen, then press buttons on the remote. Each one the TV receives shows here with its code.")}{tr(!cfg.buttons_on && ' With Remote buttons off, only presses on the home screen show up.')}{tr(" A button that never shows up (often Power, volume or the mic) is handled before Android sees it, so it can't get a new job on this TV.")}</p>
+        {listening && heard.length === 0 && <Busy text={tr("Listening. Press a button on the remote")} />}
         {heard.length > 0 && (
           <ul className="order-list">
             {heard.map((k) => (
               <li key={k.seq}>
                 <span className="grow">
-                  <b>{keyName(k.name)}</b>
-                  <span className="muted small">code {k.code}</span>
+                  <b>{tr(keyName(k.name))}</b>
+                  <span className="muted small">{tr("code ")}{tr(k.code)}</span>
                 </span>
                 <button className="btn small" disabled={mapped.has(k.code)} onClick={() => update([...cfg.buttons, { code: k.code, action: 'settings' }])}>
-                  {mapped.has(k.code) ? 'Added' : 'Give it a job'}
+                  {tr(mapped.has(k.code) ? 'Added' : 'Give it a job')}
                 </button>
               </li>
             ))}
@@ -1516,19 +1421,19 @@ function ButtonsTab(props: { cfg: HomeConfig; set: SetFn; apps: TvApp[]; setCfg:
       </div>
 
       <div className="card">
-        <h2>Button jobs</h2>
+        <h2>{tr("Button jobs")}</h2>
         {cfg.buttons.length === 0 ? (
-          <p className="muted small">None yet. Find a button above and give it a job.</p>
+          <p className="muted small">{tr("None yet. Find a button above and give it a job.")}</p>
         ) : (
           <ul className="order-list">
             {cfg.buttons.map((b, i) => (
               <li key={b.code}>
                 <span className="grow">
-                  <b>{label(b.code)}</b>
+                  <b>{tr(label(b.code))}</b>
                 </span>
                 <select
                   value={b.action}
-                  aria-label={`Job for ${label(b.code)}`}
+                  aria-label={tr(tr("Job for {0}", [label(b.code)]))}
                   onChange={(e) => {
                     const action = e.target.value as ButtonAction
                     update(cfg.buttons.map((x, j) => (j === i ? { code: x.code, action, ...(action === 'app' ? { app: apps[0]?.pkg } : {}) } : x)))
@@ -1536,12 +1441,12 @@ function ButtonsTab(props: { cfg: HomeConfig; set: SetFn; apps: TvApp[]; setCfg:
                 >
                   {ACTIONS.map(([id, text]) => (
                     <option key={id} value={id}>
-                      {text}
+                      {tr(text)}
                     </option>
                   ))}
                 </select>
                 {b.action === 'app' && (
-                  <select value={b.app ?? ''} aria-label="App to open" onChange={(e) => update(cfg.buttons.map((x, j) => (j === i ? { ...x, app: e.target.value } : x)))}>
+                  <select value={b.app ?? ''} aria-label={tr("App to open")} onChange={(e) => update(cfg.buttons.map((x, j) => (j === i ? { ...x, app: e.target.value } : x)))}>
                     {apps.map((a) => (
                       <option key={a.pkg} value={a.pkg}>
                         {a.label}
@@ -1549,14 +1454,12 @@ function ButtonsTab(props: { cfg: HomeConfig; set: SetFn; apps: TvApp[]; setCfg:
                     ))}
                   </select>
                 )}
-                <button className="btn small ghost" onClick={() => update(cfg.buttons.filter((_, j) => j !== i))}>
-                  Remove
-                </button>
+                <button className="btn small ghost" onClick={() => update(cfg.buttons.filter((_, j) => j !== i))}>{tr("Remove")}</button>
               </li>
             ))}
           </ul>
         )}
-        {cfg.buttons.length > 0 && !cfg.buttons_on && <p className="small muted" style={{ marginTop: 8 }}>Turn on Remote buttons above for these to work.</p>}
+        {cfg.buttons.length > 0 && !cfg.buttons_on && <p className="small muted" style={{ marginTop: 8 }}>{tr("Turn on Remote buttons above for these to work.")}</p>}
       </div>
     </>
   )
@@ -1604,9 +1507,9 @@ function BarsPreview({ cfg }: { cfg: HomeConfig }): ReactNode {
     ))
   }
   return (
-    <div style={{ background: cfg.background, borderRadius: 10, padding: '40px 0 0', marginTop: 12, overflow: 'hidden' }} aria-label="Preview of the music bars">
+    <div style={{ background: cfg.background, borderRadius: 10, padding: '40px 0 0', marginTop: 12, overflow: 'hidden' }} aria-label={tr("Preview of the music bars")}>
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block' }}>
-        {body}
+        {tr(body)}
       </svg>
     </div>
   )
@@ -1621,17 +1524,17 @@ function PinForm({ label, onSet }: { label: string; onSet: (pin: string) => Prom
   return (
     <div className="stack" style={{ gap: 12 }}>
       <div className="pin-row">
-        <span>PIN</span>
-        <PinBoxes value={a} onChange={setA} label="PIN" />
+        <span>{tr("PIN")}</span>
+        <PinBoxes value={a} onChange={setA} label={tr("PIN")} />
       </div>
       <div className="pin-row">
-        <span>Again</span>
-        <PinBoxes value={b} onChange={setB} label="PIN again" />
+        <span>{tr("Again")}</span>
+        <PinBoxes value={b} onChange={setB} label={tr("PIN again")} />
       </div>
       <div className="row">
         <ActionButton
           phase={busy ? 'busy' : 'idle'}
-          label={label}
+          label={tr(label)}
           busyLabel="Sending"
           disabled={a.length < 4 || a !== b}
           onClick={() => {
@@ -1643,7 +1546,7 @@ function PinForm({ label, onSet }: { label: string; onSet: (pin: string) => Prom
             })
           }}
         />
-        <span className="small muted">{note || "4 to 6 digits. Type it on the TV with the remote's number keys or the on-screen pad."}</span>
+        <span className="small muted">{tr(note || "4 to 6 digits. Type it on the TV with the remote's number keys or the on-screen pad.")}</span>
       </div>
     </div>
   )
@@ -1655,7 +1558,7 @@ const FONT_CSS: Record<HomeConfig['font'], string> = {
 }
 
 const LIMIT_CHOICES = [15, 30, 45, 60, 90, 120, 180, 240]
-const minutes = (m: number): string => (m < 60 ? `${m} min` : m % 60 === 0 ? `${m / 60} h` : `${Math.floor(m / 60)} h ${m % 60} min`)
+const minutes = (m: number): string => (m < 60 ? tr("{0} min", [m]) : m % 60 === 0 ? `${m / 60} h` : tr("{0} h {1} min", [Math.floor(m / 60), m % 60]))
 
 /** Daily limits: an app gets so many minutes a day, then it needs the PIN for the rest of the day. */
 function DailyLimits({ cfg, set, apps }: { cfg: HomeConfig; set: SetFn; apps: TvApp[] }): ReactNode {
@@ -1665,26 +1568,23 @@ function DailyLimits({ cfg, set, apps }: { cfg: HomeConfig; set: SetFn; apps: Tv
   const entries = Object.entries(cfg.limits)
   return (
     <div className="card">
-      <h2>Daily limits</h2>
-      <p className="muted small">
-        After its minutes for the day, an app needs the PIN, which gives it the rest of the day. Home counts the time itself, and the
-        count starts again at midnight.
-      </p>
+      <h2>{tr("Daily limits")}</h2>
+      <p className="muted small">{tr("After its minutes for the day, an app needs the PIN, which gives it the rest of the day. Home counts the time itself, and the count starts again at midnight.")}</p>
       {entries.map(([p, m]) => (
         <div key={p} className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}>
-          <span>{label(p)}: {minutes(m)} a day</span>
-          <button className="btn small ghost" onClick={() => set({ limits: Object.fromEntries(entries.filter(([k]) => k !== p)) })}>Remove</button>
+          <span>{tr(label(p))}: {tr(minutes(m))}{tr(" a day")}</span>
+          <button className="btn small ghost" onClick={() => set({ limits: Object.fromEntries(entries.filter(([k]) => k !== p)) })}>{tr("Remove")}</button>
         </div>
       ))}
       <div className="row" style={{ marginTop: 10 }}>
-        <select value={pkg} onChange={(e) => setPkg(e.target.value)} aria-label="App">
-          <option value="">Choose an app…</option>
+        <select value={pkg} onChange={(e) => setPkg(e.target.value)} aria-label={tr("App")}>
+          <option value="">{tr("Choose an app…")}</option>
           {apps.filter((a) => !(a.pkg in cfg.limits)).map((a) => <option key={a.pkg} value={a.pkg}>{a.label}</option>)}
         </select>
-        <select value={mins} onChange={(e) => setMins(Number(e.target.value))} aria-label="Minutes a day">
-          {LIMIT_CHOICES.map((m) => <option key={m} value={m}>{minutes(m)}</option>)}
+        <select value={mins} onChange={(e) => setMins(Number(e.target.value))} aria-label={tr("Minutes a day")}>
+          {LIMIT_CHOICES.map((m) => <option key={m} value={m}>{tr(minutes(m))}</option>)}
         </select>
-        <button className="btn small" disabled={!pkg} onClick={() => { set({ limits: { ...cfg.limits, [pkg]: mins } }); setPkg('') }}>Add</button>
+        <button className="btn small" disabled={!pkg} onClick={() => { set({ limits: { ...cfg.limits, [pkg]: mins } }); setPkg('') }}>{tr("Add")}</button>
       </div>
     </div>
   )
@@ -1701,12 +1601,9 @@ function LockTab(props: { cfg: HomeConfig; set: SetFn; apps: TvApp[]; setCfg: (c
   if (!cfg.lock_pin_set) {
     return (
       <div className="card">
-        <h2>Set a PIN</h2>
-        <p className="muted">
-          Locked apps ask for this PIN on the TV before they open, however they're opened: from Home, by voice, or from Settings.
-          The TV keeps it scrambled, and this app can't read it back.
-        </p>
-        <PinForm label="Set PIN" onSet={(pin) => call(window.cytv.setLockPin(pin))} />
+        <h2>{tr("Set a PIN")}</h2>
+        <p className="muted">{tr("Locked apps ask for this PIN on the TV before they open, however they're opened: from Home, by voice, or from Settings. The TV keeps it scrambled, and this app can't read it back.")}</p>
+        <PinForm label={tr("Set PIN")} onSet={(pin) => call(window.cytv.setLockPin(pin))} />
       </div>
     )
   }
@@ -1714,39 +1611,37 @@ function LockTab(props: { cfg: HomeConfig; set: SetFn; apps: TvApp[]; setCfg: (c
   return (
     <>
       <div className="card">
-        <h2>App lock</h2>
+        <h2>{tr("App lock")}</h2>
         <Toggle
-          label="App lock on"
-          hint={cfg.lock_on ? `${cfg.lock_apps.length} ${cfg.lock_apps.length === 1 ? 'app is' : 'apps are'} locked${cfg.lock_system ? ', plus Settings, the Play Store and Quick settings' : ''}.` : 'Your PIN and the list stay while it\'s off.'}
+          label={tr("App lock on")}
+          hint={tr(cfg.lock_on ? tr("{0} {1} locked{2}.", [cfg.lock_apps.length, cfg.lock_apps.length === 1 ? 'app is' : 'apps are', cfg.lock_system ? ', plus Settings, the Play Store and Quick settings' : '']) : 'Your PIN and the list stay while it\'s off.')}
           checked={cfg.lock_on}
           onChange={(v) => call(window.cytv.setAppLock(v))}
         />
-        <p className="small muted" style={{ marginBottom: 0 }}>
-          A family lock: it stops a quick tap, not someone with this app or a factory reset. Anyone with ADB access to the TV can turn it off.
-        </p>
+        <p className="small muted" style={{ marginBottom: 0 }}>{tr("A family lock: it stops a quick tap, not someone with this app or a factory reset. Anyone with ADB access to the TV can turn it off.")}</p>
       </div>
 
       <div className="card">
         <div className="row" style={{ justifyContent: 'space-between' }}>
-          <h2 style={{ margin: 0 }}>Locked apps</h2>
+          <h2 style={{ margin: 0 }}>{tr("Locked apps")}</h2>
           <span className="row" style={{ gap: 8 }}>
-            <button className="btn small ghost" onClick={() => set({ lock_apps: [...new Set([...cfg.lock_apps, ...shown.map((a) => a.pkg)])] })}>Lock all shown</button>
-            <button className="btn small ghost" disabled={!cfg.lock_apps.length} onClick={() => set({ lock_apps: [] })}>Unlock all</button>
+            <button className="btn small ghost" onClick={() => set({ lock_apps: [...new Set([...cfg.lock_apps, ...shown.map((a) => a.pkg)])] })}>{tr("Lock all shown")}</button>
+            <button className="btn small ghost" disabled={!cfg.lock_apps.length} onClick={() => set({ lock_apps: [] })}>{tr("Unlock all")}</button>
           </span>
         </div>
-        <input type="search" placeholder="Find an app" value={q} onChange={(e) => setQ(e.target.value)} style={{ margin: '12px 0', width: '100%' }} aria-label="Find an app" />
+        <input type="search" placeholder={tr("Find an app")} value={q} onChange={(e) => setQ(e.target.value)} style={{ margin: '12px 0', width: '100%' }} aria-label={tr("Find an app")} />
         <div className="list-picker" style={{ maxHeight: 360 }}>
           {!q && (
             <>
             <label className="row" style={{ gap: 10, cursor: 'pointer' }}>
               <input type="checkbox" checked={cfg.lock_system} onChange={(e) => set({ lock_system: e.target.checked })} />
-              <span>Settings, Play Store and Quick settings</span>
-              <span className="small muted">also the uninstaller, so the lock can't be switched off or uninstalled around</span>
+              <span>{tr("Settings, Play Store and Quick settings")}</span>
+              <span className="small muted">{tr("also the uninstaller, so the lock can't be switched off or uninstalled around")}</span>
             </label>
             <label className="row" style={{ gap: 10, cursor: 'pointer' }}>
               <input type="checkbox" checked={cfg.lock_editor} onChange={(e) => set({ lock_editor: e.target.checked })} />
-              <span>Customize Home</span>
-              <span className="small muted">the editor on the TV; its App lock page always asks</span>
+              <span>{tr("Customize Home")}</span>
+              <span className="small muted">{tr("the editor on the TV; its App lock page always asks")}</span>
             </label>
             </>
           )}
@@ -1757,22 +1652,22 @@ function LockTab(props: { cfg: HomeConfig; set: SetFn; apps: TvApp[]; setCfg: (c
               <span className="small muted mono">{a.pkg}</span>
             </label>
           ))}
-          {!shown.length && <p className="small muted">No app matches.</p>}
+          {!shown.length && <p className="small muted">{tr("No app matches.")}</p>}
         </div>
       </div>
 
       <div className="card">
-        <h2>Options</h2>
-        <p style={{ margin: '14px 0 8px', fontWeight: 600 }}>An unlock lasts</p>
+        <h2>{tr("Options")}</h2>
+        <p style={{ margin: '14px 0 8px', fontWeight: 600 }}>{tr("An unlock lasts")}</p>
         <div className="seg">
           {([['sleep', 'Until the TV sleeps'], ['15', '15 minutes'], ['always', 'Until another app opens']] as const).map(([id, label]) => (
-            <button key={id} className={cfg.lock_for === id ? 'on' : ''} onClick={() => set({ lock_for: id })}>{label}</button>
+            <button key={id} className={cfg.lock_for === id ? 'on' : ''} onClick={() => set({ lock_for: id })}>{tr(label)}</button>
           ))}
         </div>
-        <p style={{ margin: '14px 0 8px', fontWeight: 600 }}>Locked apps on Home</p>
+        <p style={{ margin: '14px 0 8px', fontWeight: 600 }}>{tr("Locked apps on Home")}</p>
         <div className="seg">
           {([['badge', 'Show them with a lock'], ['hide', 'Hide them']] as const).map(([id, label]) => (
-            <button key={id} className={cfg.lock_show === id ? 'on' : ''} onClick={() => set({ lock_show: id })}>{label}</button>
+            <button key={id} className={cfg.lock_show === id ? 'on' : ''} onClick={() => set({ lock_show: id })}>{tr(label)}</button>
           ))}
         </div>
       </div>
@@ -1780,20 +1675,20 @@ function LockTab(props: { cfg: HomeConfig; set: SetFn; apps: TvApp[]; setCfg: (c
       <DailyLimits cfg={cfg} set={set} apps={apps} />
 
       <div className="card">
-        <h2>PIN</h2>
+        <h2>{tr("PIN")}</h2>
         {changing ? (
-          <PinForm label="Change PIN" onSet={(pin) => call(window.cytv.setLockPin(pin)).then(() => setChanging(false))} />
+          <PinForm label={tr("Change PIN")} onSet={(pin) => call(window.cytv.setLockPin(pin)).then(() => setChanging(false))} />
         ) : (
           <div className="row">
-            <button className="btn ghost" onClick={() => setChanging(true)}>Change PIN</button>
-            <button className="btn ghost" onClick={() => setForgetting(true)}>Forget the PIN and turn the lock off</button>
+            <button className="btn ghost" onClick={() => setChanging(true)}>{tr("Change PIN")}</button>
+            <button className="btn ghost" onClick={() => setForgetting(true)}>{tr("Forget the PIN and turn the lock off")}</button>
           </div>
         )}
-        <p className="small muted" style={{ marginBottom: 0 }}>Forgot it? Change it here: this computer can always set a new one.</p>
+        <p className="small muted" style={{ marginBottom: 0 }}>{tr("Forgot it? Change it here: this computer can always set a new one.")}</p>
       </div>
       {forgetting && (
-        <Confirm title="Forget the PIN?" confirmLabel="Forget it" onConfirm={() => { setForgetting(false); call(window.cytv.clearAppLock()) }} onCancel={() => setForgetting(false)}>
-          <p>The lock turns off and every app opens freely. Your list of locked apps stays for next time.</p>
+        <Confirm title={tr("Forget the PIN?")} confirmLabel={tr("Forget it")} onConfirm={() => { setForgetting(false); call(window.cytv.clearAppLock()) }} onCancel={() => setForgetting(false)}>
+          <p>{tr("The lock turns off and every app opens freely. Your list of locked apps stays for next time.")}</p>
         </Confirm>
       )}
     </>
@@ -1818,40 +1713,35 @@ function FireplaceCard({ cfg, set, setCfg, onResult }: { cfg: HomeConfig; set: S
   }
   return (
     <div className="card">
-      <h2>Fireplace</h2>
-      <p className="muted">
-        A real log fire with its crackle, looping without a seam. It's about 11 MB, downloaded once and sent to the TV. Video and
-        sound from Pixabay.
-      </p>
+      <h2>{tr("Fireplace")}</h2>
+      <p className="muted">{tr("A real log fire with its crackle, looping without a seam. It's about 11 MB, downloaded once and sent to the TV. Video and sound from Pixabay.")}</p>
       <div className="row" style={{ marginBottom: 12 }}>
         <ActionButton
           phase={phase}
           primary={!on}
-          label={on ? 'Send it again' : 'Put the fireplace on the TV'}
+          label={tr(on ? 'Send it again' : 'Put the fireplace on the TV')}
           busyLabel="Sending"
           doneLabel="On the TV"
           onClick={() => void go('put')}
         />
-        {on && <button className="btn" onClick={() => void go('show')}>Show it now</button>}
-        {on && <button className="btn ghost" onClick={() => void go('saver')}>Make it the screensaver</button>}
+        {on && <button className="btn" onClick={() => void go('show')}>{tr("Show it now")}</button>}
+        {on && <button className="btn ghost" onClick={() => void go('saver')}>{tr("Make it the screensaver")}</button>}
       </div>
       {on && (
         <>
-          <Toggle label="Behind Home" hint="Shows instead of the picture. It holds still while an app is open or the TV's animations are off." checked={cfg.fire_wall} onChange={(v) => set({ fire_wall: v })} />
-          <Toggle label="Crackle full screen and as the screensaver" checked={cfg.fire_sound} onChange={(v) => set({ fire_sound: v })} />
-          <Toggle label="Crackle behind Home too" hint="Off by default, so browsing stays quiet." checked={cfg.fire_wall_sound} onChange={(v) => set({ fire_wall_sound: v })} />
-          <p style={{ margin: '14px 0 8px', fontWeight: 600 }}>Turn off after</p>
+          <Toggle label={tr("Behind Home")} hint={tr("Shows instead of the picture. It holds still while an app is open or the TV's animations are off.")} checked={cfg.fire_wall} onChange={(v) => set({ fire_wall: v })} />
+          <Toggle label={tr("Crackle full screen and as the screensaver")} checked={cfg.fire_sound} onChange={(v) => set({ fire_sound: v })} />
+          <Toggle label={tr("Crackle behind Home too")} hint={tr("Off by default, so browsing stays quiet.")} checked={cfg.fire_wall_sound} onChange={(v) => set({ fire_wall_sound: v })} />
+          <p style={{ margin: '14px 0 8px', fontWeight: 600 }}>{tr("Turn off after")}</p>
           <div className="seg" style={{ marginBottom: 6 }}>
             {([[0, 'Never'], [30, '30 min'], [60, '1 hour'], [120, '2 hours']] as const).map(([m, label]) => (
-              <button key={m} className={cfg.fire_timer === m ? 'on' : ''} onClick={() => set({ fire_timer: m })}>{label}</button>
+              <button key={m} className={cfg.fire_timer === m ? 'on' : ''} onClick={() => set({ fire_timer: m })}>{tr(label)}</button>
             ))}
           </div>
-          <p className="small muted" style={{ marginTop: 0 }}>
-            Full screen only: the fire fades out, then the TV sleeps. Press OK on the remote to change it while the fire is on.
-          </p>
-          {(cfg.fire_sound || cfg.fire_wall_sound) && <Slider label="Volume" value={cfg.fire_volume} min={0} max={100} step={5} unit="%" onChange={(v) => set({ fire_volume: v }, 250)} />}
+          <p className="small muted" style={{ marginTop: 0 }}>{tr("Full screen only: the fire fades out, then the TV sleeps. Press OK on the remote to change it while the fire is on.")}</p>
+          {(cfg.fire_sound || cfg.fire_wall_sound) && <Slider label={tr("Volume")} value={cfg.fire_volume} min={0} max={100} step={5} unit="%" onChange={(v) => set({ fire_volume: v }, 250)} />}
           <p style={{ marginTop: 10 }}>
-            <button className="btn ghost" onClick={() => void go('remove')}>Take it off the TV</button>
+            <button className="btn ghost" onClick={() => void go('remove')}>{tr("Take it off the TV")}</button>
           </p>
         </>
       )}
@@ -1886,36 +1776,31 @@ function DayNightCard({ cfg, set, setCfg, onResult }: { cfg: HomeConfig; set: Se
   }
   return (
     <div className="card">
-      <h2>Day and night</h2>
-      <p className="muted">
-        Two looks that swap at set times, each with its own wallpaper, colours and icons. Set Home up the way you want it in the day and save it,
-        then do the same for the night. Any theme works, shared ones too.
-      </p>
+      <h2>{tr("Day and night")}</h2>
+      <p className="muted">{tr("Two looks that swap at set times, each with its own wallpaper, colours and icons. Set Home up the way you want it in the day and save it, then do the same for the night. Any theme works, shared ones too.")}</p>
       {cfg.looks_saved === undefined ? (
-        <p className="small muted">Update CleanMyTV Home on the Overview tab to use this.</p>
+        <p className="small muted">{tr("Update CleanMyTV Home on the Overview tab to use this.")}</p>
       ) : (
         <>
           <div className="row" style={{ marginBottom: 8 }}>
             {(['day', 'night'] as const).map((slot) => (
               <button key={slot} className="btn" disabled={saving !== null} onClick={() => void save(slot)}>
-                {saving === slot ? 'Saving…' : `${saved.includes(slot) ? 'Save again' : 'Save this'} as the ${slot} look`}
+                {tr(saving === slot ? 'Saving…' : tr("{0} as the {1} look", [tr(saved.includes(slot) ? 'Save again' : 'Save this'), tr(slot)]))}
               </button>
             ))}
           </div>
-          <p className="small muted">{saved.length === 0 ? 'No looks saved yet.' : `Saved: the ${saved.join(' and the ')} look.`}</p>
+          <p className="small muted">{tr(saved.length === 0 ? 'No looks saved yet.' : tr("Saved: the {0} look.", [saved.map((slot) => tr(slot)).join(tr(' and the '))]))}</p>
           <div className="row" style={{ margin: '12px 0' }}>
-            <label>
-              Day from{' '}
+            <label>{tr("Day from")}{tr(' ')}
               <input type="time" value={hhmm(cfg.day_at)} onChange={(e) => { const m = minutesOf(e.target.value); if (m !== null) set({ day_at: m }, 600) }} />
             </label>
-            <label>
-              Night from{' '}
+            <label>{tr("Night from")}{tr(' ')}
               <input type="time" value={hhmm(cfg.night_at)} onChange={(e) => { const m = minutesOf(e.target.value); if (m !== null) set({ night_at: m }, 600) }} />
             </label>
           </div>
           <Toggle
-            label="Switch at these times"
-            hint={both ? 'Home puts the right look on within a minute, then again at each time. A theme you pick by hand stays until the next switch.' : 'Save both looks first.'}
+            label={tr("Switch at these times")}
+            hint={tr(both ? 'Home puts the right look on within a minute, then again at each time. A theme you pick by hand stays until the next switch.' : 'Save both looks first.')}
             checked={cfg.day_night}
             disabled={!both && !cfg.day_night}
             onChange={(v) => set({ day_night: v })}
@@ -1937,7 +1822,7 @@ function SlideshowCard({ cfg, set, setCfg, onResult }: { cfg: HomeConfig; set: S
       for (const f of files.slice(0, SLIDE_MAX)) jpegs.push((await prepareWallpaper(f, f.name)).base64)
       setCfg(await window.cytv.setSlides(jpegs))
       setPhase('done')
-      if (files.length > SLIDE_MAX) onResult({ ok: true, summary: `The slideshow takes ${SLIDE_MAX} pictures, so the first ${SLIDE_MAX} went to the TV.`, warnings: [] })
+      if (files.length > SLIDE_MAX) onResult({ ok: true, summary: tr("The slideshow takes {0} pictures, so the first {1} went to the TV.", [SLIDE_MAX, SLIDE_MAX]), warnings: [] })
     } catch (e) {
       setPhase('failed')
       onResult({ ok: false, summary: errorText(e), warnings: [] })
@@ -1945,12 +1830,12 @@ function SlideshowCard({ cfg, set, setCfg, onResult }: { cfg: HomeConfig; set: S
   }
   return (
     <div className="card">
-      <h2>Slideshow</h2>
-      <p className="muted">A new wallpaper every few minutes while Home is on screen, each with the Sunrise.</p>
-      <p style={{ margin: '6px 0 8px', fontWeight: 600 }}>Pictures</p>
+      <h2>{tr("Slideshow")}</h2>
+      <p className="muted">{tr("A new wallpaper every few minutes while Home is on screen, each with the Sunrise.")}</p>
+      <p style={{ margin: '6px 0 8px', fontWeight: 600 }}>{tr("Pictures")}</p>
       <div className="seg" style={{ marginBottom: 12 }}>
-        <button className={cfg.slide_from === 'mine' ? 'on' : ''} onClick={() => set({ slide_from: 'mine' })}>My pictures{mine ? ` (${mine})` : ''}</button>
-        <button className={cfg.slide_from === 'theme' ? 'on' : ''} onClick={() => set({ slide_from: 'theme' })}>The theme's pictures</button>
+        <button className={cfg.slide_from === 'mine' ? 'on' : ''} onClick={() => set({ slide_from: 'mine' })}>{tr("My pictures")}{tr(mine ? ` (${mine})` : '')}</button>
+        <button className={cfg.slide_from === 'theme' ? 'on' : ''} onClick={() => set({ slide_from: 'theme' })}>{tr("The theme's pictures")}</button>
       </div>
       {cfg.slide_from === 'mine' && (
         <div className="row" style={{ marginBottom: 12 }}>
@@ -1966,18 +1851,18 @@ function SlideshowCard({ cfg, set, setCfg, onResult }: { cfg: HomeConfig; set: S
               if (fs.length) void send(fs)
             }}
           />
-          <ActionButton phase={phase} label={mine ? 'Choose new pictures…' : 'Choose pictures…'} busyLabel="Sending" doneLabel="On the TV" onClick={() => file.current?.click()} />
-          {mine > 0 && <button className="btn ghost" onClick={() => void send([])}>Remove them</button>}
-          <span className="small muted">Up to {SLIDE_MAX}. They replace the ones on the TV.</span>
+          <ActionButton phase={phase} label={tr(mine ? 'Choose new pictures…' : 'Choose pictures…')} busyLabel="Sending" doneLabel="On the TV" onClick={() => file.current?.click()} />
+          {mine > 0 && <button className="btn ghost" onClick={() => void send([])}>{tr("Remove them")}</button>}
+          <span className="small muted">{tr("Up to ")}{tr(SLIDE_MAX)}{tr(". They replace the ones on the TV.")}</span>
         </div>
       )}
       {cfg.slide_from === 'theme' && (
-        <p className="small muted">Steps through the three pictures of the theme you picked on the TV. Put the themes on the TV first (Themes, above).</p>
+        <p className="small muted">{tr("Steps through the three pictures of the theme you picked on the TV. Put the themes on the TV first (Themes, above).")}</p>
       )}
-      <p style={{ margin: '6px 0 8px', fontWeight: 600 }}>Change every</p>
+      <p style={{ margin: '6px 0 8px', fontWeight: 600 }}>{tr("Change every")}</p>
       <div className="seg">
         {SLIDE_TIMES.map(([m, label]) => (
-          <button key={m} className={cfg.slide_minutes === m ? 'on' : ''} disabled={m > 0 && cfg.slide_from === 'mine' && mine === 0} onClick={() => set({ slide_minutes: m })}>{label}</button>
+          <button key={m} className={cfg.slide_minutes === m ? 'on' : ''} disabled={m > 0 && cfg.slide_from === 'mine' && mine === 0} onClick={() => set({ slide_minutes: m })}>{tr(label)}</button>
         ))}
       </div>
     </div>
@@ -2034,34 +1919,32 @@ function ThemeEditor({ themes, busy, onClose }: { themes: ThemeActions; busy: bo
   return (
     <div className="theme-editor">
       <div className="row" style={{ alignItems: 'flex-start', gap: 20 }}>
-        <canvas ref={canvas} width={384} height={216} className="theme-editor-preview" style={{ borderColor: s.accent }} aria-label="Preview" />
+        <canvas ref={canvas} width={384} height={216} className="theme-editor-preview" style={{ borderColor: s.accent }} aria-label={tr("Preview")} />
         <div style={{ flex: 1, minWidth: 240 }}>
           <label className="field">
-            <span>Start from</span>
+            <span>{tr("Start from")}</span>
             <select value={s.base.id} onChange={(e) => setS(startFrom(e.target.value))}>
               {BUILT_IN_THEMES.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
           </label>
-          <Colour label="Accent" value={s.accent} onChange={(c) => setS({ ...s, accent: c })} />
-          <Colour label="Second colour" hint="The other light in the picture." value={s.second} onChange={(c) => setS({ ...s, second: c })} />
-          <Colour label="Background" hint="Keep it dark: Home's text is white." value={s.background} onChange={(c) => setS({ ...s, background: c })} />
+          <Colour label={tr("Accent")} value={s.accent} onChange={(c) => setS({ ...s, accent: c })} />
+          <Colour label={tr("Second colour")} hint={tr("The other light in the picture.")} value={s.second} onChange={(c) => setS({ ...s, second: c })} />
+          <Colour label={tr("Background")} hint={tr("Keep it dark: Home's text is white.")} value={s.background} onChange={(c) => setS({ ...s, background: c })} />
         </div>
       </div>
-      <p style={{ margin: '14px 0 8px', fontWeight: 600 }}>Picture</p>
+      <p style={{ margin: '14px 0 8px', fontWeight: 600 }}>{tr("Picture")}</p>
       <div className="seg" style={{ flexWrap: 'wrap' }}>
         {ART_KINDS.map(([k, label]) => (
-          <button key={k} className={s.kind === k ? 'on' : ''} onClick={() => setS({ ...s, kind: k })}>{label}</button>
+          <button key={k} className={s.kind === k ? 'on' : ''} onClick={() => setS({ ...s, kind: k })}>{tr(label)}</button>
         ))}
       </div>
       <div className="row" style={{ marginTop: 14 }}>
-        <button className="btn ghost" onClick={() => setS({ ...s, seed: s.seed + 1 })}>New pattern</button>
-        <input type="text" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} aria-label="Theme name" style={{ width: 180 }} />
-        <button className="btn primary" disabled={busy} onClick={use}>Use on the TV</button>
-        <button className="btn ghost" onClick={onClose}>Close</button>
+        <button className="btn ghost" onClick={() => setS({ ...s, seed: s.seed + 1 })}>{tr("New pattern")}</button>
+        <input type="text" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} aria-label={tr("Theme name")} style={{ width: 180 }} />
+        <button className="btn primary" disabled={busy} onClick={use}>{tr("Use on the TV")}</button>
+        <button className="btn ghost" onClick={onClose}>{tr("Close")}</button>
       </div>
-      <p className="small muted" style={{ marginTop: 8, marginBottom: 0 }}>
-        Then Save this look… below keeps it as a .{THEME_EXT} file to share.
-      </p>
+      <p className="small muted" style={{ marginTop: 8, marginBottom: 0 }}>{tr("Then Save this look… below keeps it as a .")}{tr(THEME_EXT)}{tr(" file to share.")}</p>
     </div>
   )
 }

@@ -1,3 +1,4 @@
+import { t as tr } from '../lib/i18n'
 import { useEffect, useState, type ReactNode } from 'react'
 import type { ScreenProps } from '../App'
 import type { BootCheckResult } from '@shared/api'
@@ -54,96 +55,75 @@ export function Finish({ status, markDone }: ScreenProps): ReactNode {
 
   return (
     <>
-      <h1>Finish and lock</h1>
-      <p className="lede">
-        Network debugging is a plain-text shell on port 5555. On some TVs any device on your Wi-Fi can use it without the Allow
-        prompt. Close it when you're done. The home screen and the clean-up keep working without it. Turn it on again
-        any time you want to change something from this app.
-      </p>
+      <h1>{tr("Finish and lock")}</h1>
+      <p className="lede">{tr("Network debugging is a plain-text shell on port 5555. On some TVs any device on your Wi-Fi can use it without the Allow prompt. Close it when you're done. The home screen and the clean-up keep working without it. Turn it on again any time you want to change something from this app.")}</p>
 
       {usbOffWhileDebugging(status.probe) && (
-        <div className="notice warn">
-          On this TV, USB drives and USB Ethernet adapters don't work while debugging is on. Switch it off below and restart
-          the TV to get them back.
-        </div>
+        <div className="notice warn">{tr("On this TV, USB drives and USB Ethernet adapters don't work while debugging is on. Switch it off below and restart the TV to get them back.")}</div>
       )}
 
       <div className="card white">
-        <h2>1. Restart check</h2>
-        <p className="muted">
-          Restart the TV once while debugging is still on. If it comes back to a black screen, the app can still put the stock
-          launcher back. With debugging off, only a factory reset could.
-        </p>
+        <h2>{tr("1. Restart check")}</h2>
+        <p className="muted">{tr("Restart the TV once while debugging is still on. If it comes back to a black screen, the app can still put the stock launcher back. With debugging off, only a factory reset could.")}</p>
         <div className="row">
-          <button className="btn primary" onClick={restartCheck} disabled={restarting || status.state !== 'connected'}>
-            Restart the TV and check
-          </button>
-          {restarting && <Busy text="Restarting the TV and waiting for its home screen. This can take 3 minutes" />}
-          {!restarting && status.state !== 'connected' && !boot && <span className="small muted">Connect to the TV first.</span>}
+          <button className="btn primary" onClick={restartCheck} disabled={restarting || status.state !== 'connected'}>{tr("Restart the TV and check")}</button>
+          {restarting && <Busy text={tr("Restarting the TV and waiting for its home screen. This can take 3 minutes")} />}
+          {!restarting && status.state !== 'connected' && !boot && <span className="small muted">{tr("Connect to the TV first.")}</span>}
         </div>
         {boot && (
           <div className={`notice ${boot.ok ? 'ok' : 'error'}`} style={{ marginTop: 16, marginBottom: 0 }}>
-            <b>{boot.summary}</b> {boot.advice}
+            <b>{tr(boot.summary)}</b> {tr(boot.advice)}
           </div>
         )}
         {!boot?.ok && (
           <label className="row small" style={{ marginTop: 12, cursor: 'pointer' }}>
             <input type="checkbox" checked={sawHome} onChange={(e) => setSawHome(e.target.checked)} />
-            <span>I restarted the TV myself and its home screen came up</span>
+            <span>{tr("I restarted the TV myself and its home screen came up")}</span>
           </label>
         )}
       </div>
 
       <div className="card" style={safe ? undefined : { opacity: 0.5, pointerEvents: 'none' }} aria-disabled={!safe}>
-        <h2>2. On the TV</h2>
-        {!safe && <p className="small muted">Do the restart check first.</p>}
+        <h2>{tr("2. On the TV")}</h2>
+        {!safe && <p className="small muted">{tr("Do the restart check first.")}</p>}
         <ul className="checklist">
           {STEPS.map((s, i) => (
             <li key={i} className="check" style={{ gridTemplateColumns: 'auto 1fr' }}>
               <label className="row" style={{ cursor: 'pointer', gridColumn: '1 / 3' }}>
                 <input type="checkbox" checked={ticks[i]} onChange={(e) => setTicks(ticks.map((t, j) => (j === i ? e.target.checked : t)))} />
-                <span style={{ textDecoration: ticks[i] ? 'line-through' : undefined, opacity: ticks[i] ? 0.6 : 1 }}>{s}</span>
+                <span style={{ textDecoration: ticks[i] ? 'line-through' : undefined, opacity: ticks[i] ? 0.6 : 1 }}>{tr(s)}</span>
               </label>
             </li>
           ))}
         </ul>
         {status.state === 'connected' && (
-          <p className="small muted" style={{ marginTop: 10 }}>
-            The app is still connected. Turning debugging off ends the connection, which is expected.
-          </p>
+          <p className="small muted" style={{ marginTop: 10 }}>{tr("The app is still connected. Turning debugging off ends the connection, which is expected.")}</p>
         )}
       </div>
 
       <div className="card white">
-        <h2>Coming back later</h2>
-        <p className="muted" style={{ marginBottom: 8 }}>
-          To change the wallpaper, the app order or anything else on the home screen:
-        </p>
+        <h2>{tr("Coming back later")}</h2>
+        <p className="muted" style={{ marginBottom: 8 }}>{tr("To change the wallpaper, the app order or anything else on the home screen:")}</p>
         <ol className="small" style={{ margin: '0 0 8px', paddingLeft: 20 }}>
-          <li>On the TV, turn USB debugging on again (and Network or ADB debugging if your TV has it).</li>
-          <li>Open this app. It reconnects to the TV by itself, finds it again if its address changed, and opens the Home screen step.</li>
-          <li>If you revoked the authorisations, choose Allow on the TV once more.</li>
-          <li>Apply your changes, then turn debugging off again.</li>
+          <li>{tr("On the TV, turn USB debugging on again (and Network or ADB debugging if your TV has it).")}</li>
+          <li>{tr("Open this app. It reconnects to the TV by itself, finds it again if its address changed, and opens the Home screen step.")}</li>
+          <li>{tr("If you revoked the authorisations, choose Allow on the TV once more.")}</li>
+          <li>{tr("Apply your changes, then turn debugging off again.")}</li>
         </ol>
-        <p className="small muted" style={{ margin: 0 }}>
-          The app reads what is on the TV before you edit, so you always start from the current wallpaper and order. Some Google TVs
-          that needed a pairing code close port 5555 when they restart; the app shows the pairing form again if so.
-        </p>
+        <p className="small muted" style={{ margin: 0 }}>{tr("The app reads what is on the TV before you edit, so you always start from the current wallpaper and order. Some Google TVs that needed a pairing code close port 5555 when they restart; the app shows the pairing form again if so.")}</p>
       </div>
 
       <div className="card white">
-        <h2>3. Check from this computer</h2>
-        <p className="muted">Once the TV has restarted, check that port 5555 no longer answers.</p>
+        <h2>{tr("3. Check from this computer")}</h2>
+        <p className="muted">{tr("Once the TV has restarted, check that port 5555 no longer answers.")}</p>
         <div className="row">
-          <input type="text" value={host} onChange={(e) => setHost(e.target.value)} placeholder="192.168.1.50" style={{ width: 200 }} />
-          <button className="btn primary" onClick={check} disabled={!safe || checking || !/^\d{1,3}(\.\d{1,3}){3}$/.test(host.trim())}>
-            Check port 5555 is closed
-          </button>
-          {checking && <Busy text="Knocking on port 5555" />}
+          <input type="text" value={host} onChange={(e) => setHost(e.target.value)} placeholder={tr("192.168.1.50")} style={{ width: 200 }} />
+          <button className="btn primary" onClick={check} disabled={!safe || checking || !/^\d{1,3}(\.\d{1,3}){3}$/.test(host.trim())}>{tr("Check port 5555 is closed")}</button>
+          {checking && <Busy text={tr("Knocking on port 5555")} />}
         </div>
         {res && (
           <div className={`notice ${res.closed ? 'ok' : 'warn'}`} style={{ marginTop: 16, marginBottom: 0 }}>
-            <b>{res.closed ? 'Closed.' : 'Still open.'}</b> {res.message}
+            <b>{tr(res.closed ? 'Closed.' : 'Still open.')}</b> {tr(res.message)}
           </div>
         )}
       </div>

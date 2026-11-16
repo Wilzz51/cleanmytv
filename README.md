@@ -1,5 +1,11 @@
 # CleanMyTV
 
+The desktop app supports **English and French**. On first launch it follows the computer's language
+(French for `fr`, English otherwise). Use **Language / Langue** at the bottom of the sidebar to switch
+instantly; the choice is saved on this computer. This changes the desktop interface only, not the TV
+launcher's language. Raw TV/ADB output, upstream package notes and unrecognised diagnostics remain
+unchanged. Desktop translations live in `src/renderer/src/locales/`.
+
 A free Mac, Windows and Linux app that cleans up your Android TV over Wi-Fi. It switches off the preinstalled
 bloat and puts in CleanMyTV Home, an ad-free home screen you set up from your computer. You don't need
 Python, Java, Android Studio or `adb`.
