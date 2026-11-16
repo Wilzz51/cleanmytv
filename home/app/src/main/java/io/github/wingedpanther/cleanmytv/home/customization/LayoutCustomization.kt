@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -33,6 +34,7 @@ import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
 import io.github.wingedpanther.cleanmytv.home.ConfigStore
 import io.github.wingedpanther.cleanmytv.home.HomeConfig
+import io.github.wingedpanther.cleanmytv.home.R
 import io.github.wingedpanther.cleanmytv.home.canOpen
 import io.github.wingedpanther.cleanmytv.home.quickActions
 import io.github.wingedpanther.cleanmytv.home.tvInputs
@@ -46,15 +48,36 @@ private val QUICK_ALL = listOf("inputs", "wifi", "bluetooth", "display", "apps",
 fun LayoutCustomization(config: HomeConfig, ctx: Context) {
     var activeSectionsExpanded by remember { mutableStateOf(true) }
     var quickShortcutsExpanded by remember { mutableStateOf(true) }
+    var editBrand by remember { mutableStateOf(false) }
+    if (editBrand) TextPrompt(
+        title = stringResource(R.string.brand_custom), initial = config.names["brand"] ?: "", hint = "CleanMyTV", maxLength = 24,
+        onDismiss = { editBrand = false }, onDone = { text ->
+            ConfigStore.update(ctx, JSONObject().put("names", JSONObject(config.names).put("brand", text)))
+            editBrand = false
+        })
 
     Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
         // --- Layout Mode & Top Space ---
         TvRadioGroup(
             title = "Layout",
-            options = listOf("shelf" to "Shelf", "split" to "Split", "rail" to "Rail"),
+            options = listOf("shelf" to "Shelf", "split" to "Split", "rail" to "Rail", "cinema" to "Cinema", "horizon" to "Horizon", "epure" to "Épure"),
             current = config.layout,
-            onSelect = { ConfigStore.update(ctx, JSONObject().put("layout", it)) }
+            onSelect = {
+                val change = JSONObject().put("layout", it)
+                if (it == "cinema" && config.layout !in setOf("cinema", "horizon", "epure")) {
+                    change.put("accent", "#FFB23C").put("background", "#111214").put("focus", "glow")
+                        .put("show_names", true).put("name_focus", false).put("dock_size", 7)
+                        .put("sections", JSONArray(listOf("dock") + config.sections.filter { section -> section != "dock" }))
+                }
+                ConfigStore.update(ctx, change)
+            }
         )
+
+        if (config.layout in setOf("cinema", "horizon", "epure")) {
+            TvSwitch(title = stringResource(R.string.brand_show), subtitle = stringResource(R.string.brand_hint),
+                checked = config.showBrand, onCheckedChange = { ConfigStore.update(ctx, JSONObject().put("show_brand", it)) })
+            TvSecondaryButton(text = stringResource(R.string.brand_custom), onClick = { editBrand = true })
+        }
 
         TvSlider(
             title = "Space above the apps",

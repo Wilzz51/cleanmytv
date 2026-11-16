@@ -1,7 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="brand_show">Show header text</string>
+    <string name="brand_custom">Custom header text</string>
+    <string name="brand_hint">Leave empty for CleanMyTV. Hiding the text keeps your custom name.</string>
+    <string name="epure_title">Your space</string>
+    <string name="epure_subtitle">Apps and favourites. Simply.</string>
+    <string name="epure_folders">Folders</string>
+    <string name="epure_all_apps">All applications</string>
+    <string name="horizon_welcome">Welcome home</string>
+    <string name="horizon_recent">Recently used</string>
+    <string name="horizon_hint">Hold OK on an app to organise your dock</string>
+    <string name="round_layout_icons_note">Cinema, Horizon and Épure use round brand icons. Choose Shelf, Split or Rail to change their style or shape.</string>
+    <string name="cinema_home">Home</string>
+    <string name="cinema_apps">Applications</string>
+    <string name="cinema_my_apps">Your applications</string>
+    <string name="cinema_selected">SELECTED APP</string>
+    <string name="cinema_focus_hint">Hold OK on an app to organise it.</string>
+    <string name="cinema_open">Open</string>
+    <string name="cinema_empty_title">Your applications</string>
+    <string name="cinema_empty_body">Choose which apps to show in the settings.</string>
+    <string name="cinema_favourites">Favourites</string>
+    <string name="cinema_customize">Customize</string>
+    <string name="cinema_settings">Quick settings</string>
+    <string name="cinema_icons_note">Cinema uses round brand icons. Choose another layout to change the icon style or shape.</string>
     <string name="key_service_label">CleanMyTV Home remote buttons and app lock</string>
     <string name="key_service_description">Gives remote buttons the actions you chose in CleanMyTV, and asks for the PIN when a locked app opens. Buttons you didn\'t map work as before. It sees which app is on screen, and nothing inside it.</string>
     <string name="now_playing_label">CleanMyTV Home now playing</string>
     <string name="fireplace_label">CleanMyTV Fireplace</string>
+    <string name="app_menu_move">Move</string>
+    <string name="app_menu_hide">Hide from Home</string>
+    <string name="app_menu_info">App info</string>
+    <string name="app_menu_uninstall">Uninstall</string>
+    <string name="app_menu_subtitle">Manage application</string>
+    <string name="app_menu_back">Back to close</string>
+    <string name="cinema_library_count">%1$d apps · Your library</string>
+    <string name="cinema_library_close">Close</string>
+    <string name="cinema_library_hint">OK to open · Hold OK for options · Back to close</string>
 </resources>

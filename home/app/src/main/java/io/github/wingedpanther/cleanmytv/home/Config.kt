@@ -16,7 +16,7 @@ data class Group(val name: String, val apps: List<String>)
 /** Everything CleanMyTV can change. The desktop app sends any subset; the rest keeps its value. */
 data class HomeConfig(
     // Arrangement
-    val layout: String = "shelf", // shelf, split, rail
+    val layout: String = "shelf", // shelf, split, rail, cinema, horizon, epure
     val sections: List<String> = listOf("nowplaying", "dock", "rows", "folders", "grid"), // top to bottom; absent = hidden
     val topSpace: Int = 25, // percent of the screen left open above the apps (shelf)
     val quick: List<String> = listOf("inputs", "wifi", "settings"), // quick-settings icons and "app:<package>" shortcuts, in order
@@ -82,6 +82,7 @@ data class HomeConfig(
     val slideFrom: String = "mine", // mine, theme
     val clock: String = "time_date", // time_date, time, off
     val greeting: String = "",
+    val showBrand: Boolean = true,
     // The owner's own words for the top bar buttons and the All apps title, by id (#67)
     val names: Map<String, String> = emptyMap(),
     // Idle screen: after this many minutes without a button press, only the wallpaper and the clock show; 0 is off
@@ -113,6 +114,7 @@ data class HomeConfig(
     val vizSensitivity: Int = 100, // percent
     val editOnTv: Boolean = false, // the on-TV editor (experimental), off until the owner turns it on in the desktop app
 ) {
+    val brandLabel: String get() = names["brand"]?.takeIf { it.isNotBlank() } ?: "CleanMyTV"
     fun toJson(): JSONObject = JSONObject()
         .put("layout", layout)
         .put("sections", JSONArray(sections))
@@ -167,6 +169,7 @@ data class HomeConfig(
         .put("slide_from", slideFrom)
         .put("clock", clock)
         .put("greeting", greeting)
+        .put("show_brand", showBrand)
         .put("names", JSONObject(names as Map<*, *>))
         .put("idle_minutes", idleMinutes)
         .put("idle_style", idleStyle)
@@ -248,7 +251,7 @@ data class HomeConfig(
                 buttons = buttons() ?: base.buttons,
                 stockRedirect = if (o.has("stock_redirect")) o.optString("stock_redirect").takeIf { it.isEmpty() || PKG.matches(it) } ?: base.stockRedirect else base.stockRedirect,
                 powerOnInput = bool("power_on_input", base.powerOnInput),
-                layout = choice("layout", base.layout, setOf("shelf", "split", "rail")),
+                layout = choice("layout", base.layout, setOf("shelf", "split", "rail", "cinema", "horizon", "epure")),
                 sections = strings("sections", SECTIONS) ?: base.sections,
                 topSpace = int("top_space", base.topSpace, 0, 40),
                 quick = o.optJSONArray("quick")?.let { a ->
@@ -310,6 +313,7 @@ data class HomeConfig(
                     m.keys().asSequence().take(60).mapNotNull { k -> m.optInt(k, -1).takeIf { PKG.matches(k) && it in 5..720 }?.let { k to it } }.toMap()
                 } ?: base.limits,
                 greeting = if (o.has("greeting")) o.optString("greeting").take(40) else base.greeting,
+                showBrand = bool("show_brand", base.showBrand),
                 names = o.optJSONObject("names")?.let { n ->
                     n.keys().asSequence().mapNotNull { k -> n.optString(k).trim().take(24).takeIf { it.isNotEmpty() }?.let { k to it } }.toMap()
                 } ?: base.names,

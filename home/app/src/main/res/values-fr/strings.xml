@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="brand_show">Afficher le texte d’en-tête</string>
+    <string name="brand_custom">Texte personnalisé</string>
+    <string name="brand_hint">Laissez vide pour CleanMyTV. Masquer le texte conserve votre nom personnalisé.</string>
+    <string name="epure_title">Votre espace</string>
+    <string name="epure_subtitle">Applications et favoris. Tout simplement.</string>
+    <string name="epure_folders">Dossiers</string>
+    <string name="epure_all_apps">Toutes les applications</string>
+    <string name="horizon_welcome">Bienvenue chez vous</string>
+    <string name="horizon_recent">Applications récentes</string>
+    <string name="horizon_hint">Maintenez OK sur une application pour organiser le dock</string>
+    <string name="round_layout_icons_note">Cinéma, Horizon et Épure utilisent des icônes rondes aux couleurs des applications. Choisissez Étagère, Partagé ou Rail pour changer leur style ou leur forme.</string>
+    <string name="cinema_home">Accueil</string>
+    <string name="cinema_apps">Applications</string>
+    <string name="cinema_my_apps">Vos applications</string>
+    <string name="cinema_selected">VOTRE APPLICATION</string>
+    <string name="cinema_focus_hint">Maintenez OK sur une application pour l’organiser.</string>
+    <string name="cinema_open">Ouvrir</string>
+    <string name="cinema_empty_title">Vos applications</string>
+    <string name="cinema_empty_body">Choisissez les applications à afficher dans les réglages.</string>
+    <string name="cinema_favourites">Favoris</string>
+    <string name="cinema_customize">Personnaliser</string>
+    <string name="cinema_settings">Réglages rapides</string>
+    <string name="cinema_icons_note">Cinéma utilise des icônes rondes aux couleurs des applications. Choisissez une autre disposition pour changer leur style ou leur forme.</string>
+    <string name="app_menu_move">Déplacer</string>
+    <string name="app_menu_hide">Masquer de l’accueil</string>
+    <string name="app_menu_info">Informations</string>
+    <string name="app_menu_uninstall">Désinstaller</string>
+    <string name="app_menu_subtitle">Gérer l’application</string>
+    <string name="app_menu_back">Retour pour fermer</string>
+    <string name="cinema_library_count">%1$d appli(s) · Votre bibliothèque</string>
+    <string name="cinema_library_close">Fermer</string>
+    <string name="cinema_library_hint">OK pour ouvrir · Maintenir OK pour les options · Retour pour fermer</string>
+</resources>

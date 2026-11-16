@@ -149,7 +149,10 @@ const handlers: Omit<Handlers, 'onLog' | 'onProgress' | 'onStatus'> = {
   tvPackages: () => debloat.tvPackages(),
   applyDebloat: (req) => debloat.apply(req),
   restore: (id) => debloat.restore(id),
-  useStockLauncher: async () => home.leftHome(await launcher.useStock()),
+  useStockLauncher: async (removeHome) => {
+    const result = await home.leftHome(await launcher.useStock())
+    return result.ok && removeHome === true ? launcher.removeHome() : result
+  },
   otherLaunchers: () => launcher.otherLaunchers(),
   useOtherLauncher: async (pkg) => home.leftHome(await launcher.useOther(String(pkg ?? ''))),
   keepGoogleLauncher: (on) => home.keepGoogleLauncher(on === true),

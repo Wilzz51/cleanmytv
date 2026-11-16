@@ -30,13 +30,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -45,6 +51,10 @@ import androidx.compose.material.icons.outlined.AcUnit
 import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material.icons.outlined.Dehaze
 import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.OpenWith
+import androidx.compose.material.icons.outlined.VisibilityOff
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Memory
 import androidx.compose.material.icons.outlined.Timer
@@ -105,6 +115,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.core.graphics.drawable.toBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -135,7 +146,7 @@ private val TILE = Color(0xE62D3A2E)
 private val TILE_FOCUSED = Color(0xFF3A4A3B)
 
 /** A focused row in Home's menus: the accent, mixed into the tile so the light text still reads (#112). */
-private fun menuFocus(ui: Ui): Color = lerp(TILE, ui.accent, 0.45f)
+private fun menuFocus(ui: Ui): Color = lerp(if (ui.cfg.layout == "cinema") Color(0xFF1C212C) else TILE, ui.accent, 0.45f)
 private val GROUND = Color(0xFF1C2A1F)
 private val PANEL = Color(0xFF2D3A2E)
 
@@ -183,7 +194,9 @@ private class Home(all: List<TvApp>, val cfg: HomeConfig, recentPkgs: List<Strin
     val folders = (cfg.folders.map { g -> g.name to g.apps.mapNotNull { byPkg[it] } } + listOf("Other apps" to other)).filter { it.second.isNotEmpty() }
     val recent = recentPkgs.mapNotNull { byPkg[it] }.filter { it.pkg !in cfg.hidden }
     /** The tile that takes focus when Home opens, as "<section>:<package>" (an app can sit in two sections). */
-    val first: String? = cfg.sections.firstNotNullOfOrNull { s ->
+    val first: String? = if (cfg.layout == "horizon") {
+        if ("dock" in cfg.sections) dock.firstOrNull()?.let { "dock:${it.pkg}" } else null
+    } else cfg.sections.firstNotNullOfOrNull { s ->
         when (s) {
             "recent" -> recent.firstOrNull()?.let { "recent:${it.pkg}" }
             "dock" -> dock.firstOrNull()?.let { "dock:${it.pkg}" }
@@ -201,7 +214,7 @@ fun HomeScreen(visualiser: Visualiser, appsVersion: Int, open: androidx.compose.
     val wallVersion by ConfigStore.wallpaperVersion.collectAsState()
     var apps by remember { mutableStateOf<List<TvApp>>(emptyList()) }
     var inputs by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
-    val glyphs = cfg.iconStyle != "banner"
+    val glyphs = cfg.iconStyle != "banner" || cfg.layout in setOf("cinema", "horizon", "epure")
     LaunchedEffect(appsVersion, glyphs, cfg.liveTv) {
         apps = withContext(Dispatchers.Default) { loadApps(ctx, glyphs) }
         inputs = withContext(Dispatchers.Default) { tvInputs(ctx, cfg.liveTv) }
@@ -374,7 +387,8 @@ fun HomeScreen(visualiser: Visualiser, appsVersion: Int, open: androidx.compose.
     fun step(by: Int) {
         val m = moving ?: return
         val change = if (m.kind == "main") {
-            JSONObject().put("order", JSONArray(Reorder.order(cfg.order, (home.dock + home.grid).map { it.pkg }, m.pkg, by)))
+            val movable = if (cfg.layout == "horizon") home.dock else home.dock + home.grid
+            JSONObject().put("order", JSONArray(Reorder.order(cfg.order, movable.map { it.pkg }, m.pkg, by)))
         } else {
             val (name, list) = home.rows.getOrNull(m.kind.removePrefix("row").toIntOrNull() ?: -1) ?: return
             val rows = cfg.rows.map { g -> if (g.name == name) Group(g.name, Reorder.row(g.apps, list.map { it.pkg }, m.pkg, by)) else g }
@@ -383,9 +397,16 @@ fun HomeScreen(visualiser: Visualiser, appsVersion: Int, open: androidx.compose.
         ConfigStore.update(ctx, change)
     }
     var focusColour by remember { mutableStateOf<Color?>(null) }
+    var cinemaFocus by remember { mutableStateOf<String?>(null) }
+    // Resolve against the visible model on every app-list change: hidden/removed apps never stay actionable.
+    val cinemaApp = remember(home, cinemaFocus) {
+        val pkg = CinemaSelection.pick(cinemaFocus, home.shown.map { it.pkg }, home.first)
+        home.shown.firstOrNull { it.pkg == pkg }
+    }
     val tint by animateColorAsState(focusColour ?: Color.Transparent, tween(600), label = "tint")
     val ui = Ui(cfg, accent, first, movingKey ?: home.first, onFolder = { openFolder = it }, track = track, weather = weather, memory = memory,
-        onFocusApp = { a -> focusColour = a.colour?.let { Color(it) } }, motion = motion, onAppMenu = { s, a -> menuFor = s to a }, movingKey = movingKey)
+        onFocusApp = { a -> focusColour = a.colour?.let { Color(it) }; if (cfg.layout == "cinema") cinemaFocus = a.pkg },
+        motion = motion, onAppMenu = { s, a -> menuFor = s to a }, movingKey = movingKey, cinemaApp = cinemaApp)
 
     Box(
         Modifier.fillMaxSize().background(Color(cfg.background)).onPreviewKeyEvent { e ->
@@ -429,6 +450,9 @@ fun HomeScreen(visualiser: Visualiser, appsVersion: Int, open: androidx.compose.
                 Box(Modifier.fillMaxSize().background(Brush.verticalGradient(1f - cfg.shadeBottomReach / 100f to Color.Transparent, 1f to scrim(cfg, cfg.shadeBottom / 100f))))
             }
             when (cfg.layout) {
+                "epure" -> EpureLayout(home, ui, quick, onQuick)
+                "horizon" -> HorizonLayout(home, ui, quick, onQuick)
+                "cinema" -> CinemaLayout(home, ui, quick, onQuick)
                 "split" -> SplitLayout(home, ui, quick, onQuick)
                 "rail" -> RailLayout(home, ui, quick, onQuick)
                 else -> ShelfLayout(home, ui, quick, onQuick)
@@ -537,13 +561,232 @@ private class Ui(
     val onAppMenu: (String, TvApp) -> Unit = { _, _ -> },
     /** "<section>:<package>" of the app being moved, drawn with an outline. */
     val movingKey: String? = null,
+    val cinemaApp: TvApp? = null,
 ) {
     /** Banners are always wide; the icon styles take the chosen shape. */
-    val shape: String = if (cfg.iconStyle == "banner") "wide" else cfg.tileShape
+    val shape: String = if (cfg.layout in setOf("cinema", "horizon", "epure")) "round" else if (cfg.iconStyle == "banner") "wide" else cfg.tileShape
     fun focusFor(section: String, app: TvApp): Modifier = if ("$section:${app.pkg}" == focusKey) Modifier.focusRequester(focus) else Modifier
 }
 
 // ---- Layouts --------------------------------------------------------------------------------------
+
+/** A restrained library: no hero or colour wash, just compact app sections and a quiet header. */
+@Composable
+private fun EpureLayout(home: Home, ui: Ui, quick: List<QuickAction>, onQuick: (QuickAction) -> Unit) {
+    val allApps = stringResource(R.string.cinema_apps)
+    val headerFocus = remember { FocusRequester() }
+    LaunchedEffect(home.first) { if (home.first == null) runCatching { headerFocus.requestFocus() } }
+    Column(Modifier.fillMaxSize()) {
+        Row(Modifier.fillMaxWidth().padding(start = SAFE_X, end = SAFE_X, top = SAFE_Y),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            if (ui.cfg.showBrand) Text(ui.cfg.names["brand"] ?: "CLEANMYTV", color = TEXT.copy(alpha = 0.45f), fontSize = 12.sp,
+                letterSpacing = 2.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 180.dp))
+            Spacer(Modifier.weight(1f))
+            CinemaAction(allApps, ui, quiet = true,
+                modifier = if (home.first == null) Modifier.focusRequester(headerFocus) else Modifier) { ui.onFolder(allApps to home.shown) }
+            LazyRow(Modifier.widthIn(max = 180.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), contentPadding = PaddingValues(4.dp)) {
+                items(quick, key = { it.id }) { QuickButton(it, ui, onQuick, compact = true) }
+            }
+            Clock(ui.cfg, 19.sp, 11.sp, Alignment.End)
+        }
+        Box(Modifier.padding(horizontal = SAFE_X, vertical = 14.dp).fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.06f)))
+        Row(Modifier.fillMaxWidth().padding(start = SAFE_X, end = SAFE_X, top = 5.dp, bottom = 14.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(R.string.epure_title), color = TEXT, fontSize = 26.sp, fontWeight = FontWeight.Light, letterSpacing = (-0.5).sp)
+                Text(stringResource(R.string.epure_subtitle), color = TEXT.copy(alpha = 0.4f), fontSize = 12.sp, modifier = Modifier.padding(top = 5.dp))
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                WeatherLine(ui, 12.sp)
+                MemoryLine(ui, 11.sp, Modifier.padding(top = 4.dp))
+            }
+        }
+        Sections(home, ui, Modifier.fillMaxSize(), PaddingValues(start = SAFE_X - BLEED, end = SAFE_X - BLEED, bottom = 96.dp), dockWidth = 88.dp)
+    }
+}
+
+/** A quiet clock-led home with a centred dock. App drawers reuse the normal lock-aware tiles. */
+@Composable
+private fun HorizonLayout(home: Home, ui: Ui, quick: List<QuickAction>, onQuick: (QuickAction) -> Unit) {
+    val cfg = ui.cfg
+    val allApps = stringResource(R.string.cinema_apps)
+    val dock = if ("dock" in cfg.sections) home.dock else emptyList()
+    val headerFocus = remember { FocusRequester() }
+    LaunchedEffect(home.first) { if (home.first == null) runCatching { headerFocus.requestFocus() } }
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        Box(Modifier.fillMaxSize().drawBehind {
+            drawRect(Brush.radialGradient(listOf(Color(0xFF73A5FF).copy(alpha = 0.13f), Color.Transparent),
+                center = Offset(size.width * 0.5f, size.height * 0.35f), radius = size.width * 0.65f))
+            drawLine(Brush.horizontalGradient(listOf(Color.Transparent, Color.White.copy(alpha = 0.08f), Color.Transparent)),
+                Offset(0f, size.height * 0.62f), Offset(size.width, size.height * 0.62f), strokeWidth = 1.dp.toPx())
+        })
+        Row(Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(horizontal = SAFE_X, vertical = SAFE_Y),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            if (cfg.showBrand) Text(cfg.brandLabel, color = TEXT.copy(alpha = 0.7f), fontSize = 15.sp, fontWeight = FontWeight.Medium,
+                maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 140.dp))
+            LazyRow(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(6.dp), contentPadding = PaddingValues(5.dp)) {
+                item("all") { CinemaAction(allApps, ui, quiet = true,
+                    modifier = if (home.first == null) Modifier.focusRequester(headerFocus) else Modifier) { ui.onFolder(allApps to home.shown) } }
+                if ("rows" in cfg.sections) itemsIndexed(home.rows, key = { index, _ -> "row:$index" }) { _, group ->
+                    CinemaAction(group.first, ui, quiet = true) { ui.onFolder(group) }
+                }
+                if ("folders" in cfg.sections) itemsIndexed(home.folders, key = { index, _ -> "folder:$index" }) { _, group ->
+                    CinemaAction(group.first, ui, quiet = true) { ui.onFolder(group) }
+                }
+                if ("recent" in cfg.sections && home.recent.isNotEmpty()) item("recent") {
+                    val title = stringResource(R.string.horizon_recent)
+                    CinemaAction(title, ui, quiet = true) { ui.onFolder(title to home.recent) }
+                }
+            }
+            LazyRow(Modifier.widthIn(max = 200.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), contentPadding = PaddingValues(5.dp)) {
+                items(quick, key = { it.id }) { QuickButton(it, ui, onQuick, compact = true) }
+            }
+        }
+        Row(Modifier.align(Alignment.CenterStart).fillMaxWidth().padding(start = SAFE_X + 12.dp, end = SAFE_X, bottom = 135.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                if (cfg.clock != "off") Clock(cfg, 72.sp, 14.sp, Alignment.Start)
+                else Text(stringResource(R.string.horizon_welcome), color = TEXT, fontSize = 44.sp, fontWeight = FontWeight.Light)
+                Spacer(Modifier.height(12.dp))
+                Greeting(cfg, 17.sp)
+                WeatherLine(ui, 13.sp, Modifier.padding(top = 5.dp))
+                MemoryLine(ui, 12.sp, Modifier.padding(top = 5.dp))
+            }
+            Column(Modifier.weight(1f), horizontalAlignment = Alignment.End) {
+                if ("nowplaying" in cfg.sections) ui.track?.let { NowPlayingCard(it, ui) }
+            }
+        }
+        if (dock.isNotEmpty()) {
+            val iconWidth = 64.dp * (cfg.dockScale / 100f)
+            val panelWidth = minOf(maxWidth - SAFE_X * 2, iconWidth * dock.size + 20.dp * (dock.size - 1) + 40.dp)
+            val list = rememberLazyListState()
+            LaunchedEffect(ui.movingKey) {
+                val pkg = ui.movingKey?.removePrefix("dock:") ?: return@LaunchedEffect
+                val index = dock.indexOfFirst { it.pkg == pkg }
+                if (index >= 0 && list.layoutInfo.visibleItemsInfo.none { it.index == index }) list.scrollToItem(index)
+            }
+            LazyRow(Modifier.align(Alignment.BottomCenter).padding(bottom = SAFE_Y + if (cfg.visualiser) 64.dp else 20.dp)
+                .width(panelWidth).background(Color(0xD51A1E27), RoundedCornerShape(28.dp))
+                .border(1.dp, Color.White.copy(alpha = 0.09f), RoundedCornerShape(28.dp)),
+                state = list, horizontalArrangement = Arrangement.spacedBy(20.dp),
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 18.dp)) {
+                items(dock, key = { it.pkg }) { app -> Tile("dock", app, ui, Modifier.width(iconWidth), big = true) }
+            }
+        }
+        if (dock.isNotEmpty()) Text(stringResource(R.string.horizon_hint), color = TEXT.copy(alpha = 0.4f), fontSize = 11.sp,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = SAFE_Y))
+    }
+}
+
+/** Floating navigation and a contextual spotlight above the round apps, using actual media metadata. */
+@Composable
+private fun CinemaLayout(home: Home, ui: Ui, quick: List<QuickAction>, onQuick: (QuickAction) -> Unit) {
+    val ctx = LocalContext.current
+    val cfg = ui.cfg
+    val allApps = stringResource(R.string.cinema_apps)
+    val favourites = stringResource(R.string.cinema_favourites)
+    val selected = ui.cinemaApp
+    val playing = ui.track?.takeIf { "nowplaying" in cfg.sections && it.app == selected?.label }
+    CinemaAmbient(ui)
+    Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(0f to Color(0x45080B11), 1f to Color.Transparent)))
+    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.35f to Color.Transparent, 1f to Color(0x66080B11))))
+    Column(Modifier.fillMaxSize()) {
+        Row(
+            Modifier.fillMaxWidth().padding(start = SAFE_X, end = SAFE_X, top = SAFE_Y, bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            if (cfg.showBrand) Text(cfg.brandLabel, color = TEXT.copy(alpha = 0.8f), fontSize = 16.sp, fontWeight = FontWeight.SemiBold,
+                maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 160.dp))
+            Row(Modifier.background(Color.White.copy(alpha = 0.07f), RoundedCornerShape(30.dp))
+                .border(1.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(30.dp)).padding(5.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(stringResource(R.string.cinema_home), color = TEXT, fontSize = 13.sp, fontWeight = FontWeight.Medium,
+                    modifier = Modifier.background(Color.White.copy(alpha = 0.13f), RoundedCornerShape(24.dp)).padding(horizontal = 15.dp, vertical = 9.dp))
+                CinemaAction(allApps, ui, quiet = true) { ui.onFolder(allApps to home.shown) }
+                if (home.dock.isNotEmpty()) CinemaAction(favourites, ui, quiet = true) { ui.onFolder(favourites to home.dock) }
+            }
+            Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+                if (quick.isNotEmpty()) LazyRow(
+                    Modifier.width(minOf(240.dp, 34.dp * quick.size + 12.dp))
+                        .background(Color.White.copy(alpha = 0.09f), CircleShape)
+                        .border(1.dp, Color.White.copy(alpha = 0.07f), CircleShape),
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    contentPadding = PaddingValues(horizontal = 7.dp, vertical = 5.dp)
+                ) {
+                    items(quick, key = { it.id }) { QuickButton(it, ui, onQuick, compact = true) }
+                }
+            }
+            Clock(cfg.copy(clock = if (cfg.clock == "off") "off" else "time"), 19.sp, 12.sp, Alignment.End)
+        }
+        Sections(home, ui, Modifier.weight(1f).fillMaxWidth(),
+            PaddingValues(start = SAFE_X - BLEED, end = SAFE_X - BLEED, bottom = 96.dp), dockWidth = 104.dp,
+            hero = {
+                Column(Modifier.padding(horizontal = BLEED).fillMaxWidth().height(208.dp), verticalArrangement = Arrangement.Center) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        selected?.glyph?.let { Image(it.art, null, Modifier.size(18.dp), contentScale = ContentScale.Fit) }
+                        Text(if (playing != null) playing.app else stringResource(R.string.cinema_selected),
+                            color = TEXT.copy(alpha = 0.65f), fontSize = 11.sp, letterSpacing = 1.5.sp, fontWeight = FontWeight.Medium)
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    Text(playing?.title ?: selected?.label ?: stringResource(R.string.cinema_empty_title), color = TEXT,
+                        fontSize = if ((playing?.title ?: selected?.label.orEmpty()).length > 22) 36.sp else 48.sp,
+                        lineHeight = 51.sp, fontWeight = FontWeight.Medium, letterSpacing = (-1).sp, maxLines = 2,
+                        overflow = TextOverflow.Ellipsis, modifier = Modifier.fillMaxWidth(0.7f))
+                    Spacer(Modifier.height(10.dp))
+                    Text(playing?.artist?.takeIf { it.isNotBlank() } ?: stringResource(if (selected == null) R.string.cinema_empty_body else R.string.cinema_focus_hint),
+                        color = TEXT.copy(alpha = 0.65f), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.fillMaxWidth(0.7f))
+                    Spacer(Modifier.height(16.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        if (selected != null) CinemaAction(stringResource(R.string.cinema_open), ui, filled = true, icon = Icons.Outlined.PlayArrow) {
+                            launch(ctx, selected)
+                        }
+                        val action = quickActions().getValue(if (cfg.editOnTv) "customize" else "panel")
+                        CinemaAction(stringResource(if (cfg.editOnTv) R.string.cinema_customize else R.string.cinema_settings), ui, icon = Icons.Outlined.Dehaze) { onQuick(action) }
+                    }
+                }
+            })
+    }
+}
+
+/** A low-contrast glow instead of an automatic photo; animation only invalidates this draw layer. */
+@Composable
+private fun CinemaAmbient(ui: Ui) {
+    val app = ui.cinemaApp
+    val pkg = app?.pkg.orEmpty()
+    val colour = when {
+        "youtube" in pkg -> Color(0xFFFF0033)
+        "netflix" in pkg -> Color(0xFFE50914)
+        "amazon" in pkg || "amzn" in pkg -> Color(0xFF159EFF)
+        "disney" in pkg -> Color(0xFF2563EB)
+        "spotify" in pkg -> Color(0xFF1ED760)
+        "twitch" in pkg -> Color(0xFF9146FF)
+        else -> app?.glyph?.plate?.let { Color(it) } ?: app?.colour?.let { Color(it) } ?: Color(0xFF6F7785)
+    }
+    val ambient = animateColorAsState(colour, tween(if (ui.motion) 900 else 0), label = "cinema ambient")
+    Box(Modifier.fillMaxSize().drawBehind {
+        drawRect(Brush.radialGradient(listOf(ambient.value.copy(alpha = 0.14f), Color.Transparent),
+            center = Offset(size.width * 0.18f, size.height * 0.42f), radius = size.width * 0.7f))
+    })
+}
+
+@Composable
+private fun CinemaAction(label: String, ui: Ui, filled: Boolean = false, quiet: Boolean = false, icon: ImageVector? = null, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(24.dp)
+    val (scale, glow, border) = focusStyle(ui, shape, zoom = 1.04f)
+    var focused by remember { mutableStateOf(false) }
+    Surface(onClick = onClick, modifier = modifier.pointer(onClick = onClick).onFocusChanged { focused = it.hasFocus },
+        shape = ClickableSurfaceDefaults.shape(shape), scale = scale, glow = glow, border = border,
+        colors = ClickableSurfaceDefaults.colors(containerColor = if (filled) TEXT else Color.White.copy(alpha = if (quiet) 0f else 0.08f), focusedContainerColor = ui.accent)) {
+        val ink = if (focused) onAccent(ui.accent) else if (filled) GROUND else TEXT
+        Row(Modifier.padding(horizontal = 16.dp, vertical = 9.dp), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+            if (icon != null) Image(icon, null, Modifier.size(17.dp), colorFilter = ColorFilter.tint(ink))
+            Text(label, color = ink, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+        }
+    }
+}
 
 /** Shelf: a slim top bar, open wallpaper above the apps, the sections below. */
 @Composable
@@ -639,7 +882,7 @@ private fun RailLayout(home: Home, ui: Ui, quick: List<QuickAction>, onQuick: (Q
 
 @Composable
 @OptIn(ExperimentalFoundationApi::class)
-private fun Sections(home: Home, ui: Ui, modifier: Modifier, padding: PaddingValues, dockWidth: Dp, showFolders: Boolean = true) {
+private fun Sections(home: Home, ui: Ui, modifier: Modifier, padding: PaddingValues, dockWidth: Dp, showFolders: Boolean = true, hero: (@Composable () -> Unit)? = null) {
     val cfg = ui.cfg
     // Rows keep Android TV's own sideways scrolling; only the column up and down follows STAY.
     val rowSpec = LocalBringIntoViewSpec.current
@@ -661,21 +904,23 @@ private fun Sections(home: Home, ui: Ui, modifier: Modifier, padding: PaddingVal
             }
         }
         CompositionLocalProvider(LocalBringIntoViewSpec provides STAY) { LazyColumn(Modifier.fillMaxSize().fadeTop(), state = list, contentPadding = padding) {
+            if (hero != null) item("cinema-hero") { hero() }
             for (s in cfg.sections) when (s) {
                 "nowplaying" -> ui.track?.let { t -> item("nowplaying") { NowPlayingCard(t, ui) } }
                 "recent" -> if (home.recent.isNotEmpty()) {
-                    item("recent-title") { SectionTitle(cfg.names["recent"] ?: "Recently used") }
-                    item("recent") { TileRow("recent", home.recent, ui, 148.dp * (cfg.tileScale / 100f), big = false, rowSpec) }
+                    item("recent-title") { SectionTitle(cfg.names["recent"] ?: if (cfg.layout == "epure") stringResource(R.string.horizon_recent) else "Recently used", cfg.layout == "epure") }
+                    item("recent") { TileRow("recent", home.recent, ui, (if (cfg.layout == "epure") 88.dp else if (cfg.layout == "cinema") 104.dp else 148.dp) * (cfg.tileScale / 100f), big = false, rowSpec) }
                 }
-                "dock" -> if (home.dock.isNotEmpty()) item("dock") {
-                    TileRow("dock", home.dock, ui, dockW, big = true, rowSpec)
+                "dock" -> if (home.dock.isNotEmpty()) {
+                    if (cfg.layout in setOf("cinema", "epure")) item("dock-title") { SectionTitle(stringResource(R.string.cinema_my_apps), cfg.layout == "epure") }
+                    item("dock") { TileRow("dock", home.dock, ui, dockW, big = true, rowSpec) }
                 }
                 "rows" -> home.rows.forEachIndexed { i, (name, list) ->
-                    item("row$i-title") { SectionTitle(name) }
-                    item("row$i") { TileRow("row$i", list, ui, 148.dp * (cfg.tileScale / 100f), big = false, rowSpec) }
+                    item("row$i-title") { SectionTitle(name, cfg.layout == "epure") }
+                    item("row$i") { TileRow("row$i", list, ui, (if (cfg.layout == "epure") 88.dp else if (cfg.layout == "cinema") 104.dp else 148.dp) * (cfg.tileScale / 100f), big = false, rowSpec) }
                 }
                 "folders" -> if (showFolders && home.folders.isNotEmpty()) {
-                    item("folders-title") { SectionTitle("Folders") }
+                    item("folders-title") { SectionTitle(if (cfg.layout == "epure") stringResource(R.string.epure_folders) else "Folders", cfg.layout == "epure") }
                     item("folders") {
                         CompositionLocalProvider(LocalBringIntoViewSpec provides rowSpec) {
                             LazyRow(horizontalArrangement = Arrangement.spacedBy(GAP), contentPadding = PaddingValues(horizontal = BLEED, vertical = 16.dp)) {
@@ -692,10 +937,11 @@ private fun Sections(home: Home, ui: Ui, modifier: Modifier, padding: PaddingVal
 
 /** The keys of Sections' items, in the order it lays them out. */
 private fun sectionKeys(home: Home, ui: Ui, showFolders: Boolean): List<String> = buildList {
+    if (ui.cfg.layout == "cinema") add("cinema-hero")
     for (s in ui.cfg.sections) when (s) {
         "nowplaying" -> if (ui.track != null) add("nowplaying")
         "recent" -> if (home.recent.isNotEmpty()) { add("recent-title"); add("recent") }
-        "dock" -> if (home.dock.isNotEmpty()) add("dock")
+        "dock" -> if (home.dock.isNotEmpty()) { if (ui.cfg.layout in setOf("cinema", "epure")) add("dock-title"); add("dock") }
         "rows" -> home.rows.indices.forEach { add("row$it-title"); add("row$it") }
         "folders" -> if (showFolders && home.folders.isNotEmpty()) { add("folders-title"); add("folders") }
         "grid" -> if (home.grid.isNotEmpty()) { add("grid-title"); home.grid.chunked(ui.cfg.columns).indices.forEach { add("grid$it") } }
@@ -726,13 +972,13 @@ private fun PaddingValues.calcHorizontal(): Dp =
 
 private fun LazyListScope.grid(home: Home, ui: Ui, w: Dp) {
     val label = ui.cfg.names["all_apps"] ?: if (home.dock.isEmpty() && home.rows.isEmpty()) "Apps" else "All apps"
-    item("grid-title") { SectionTitle(label) }
-    // A square tile fills the middle 72% of its slot: the rows move left by the 14% before it, so the first
-    // tile lines up with the heading and the dock above instead of sitting in from them.
-    val inset = if (ui.shape == "wide") 0.dp else w * 0.14f
+    item("grid-title") { SectionTitle(if (ui.cfg.layout == "epure" && ui.cfg.names["all_apps"] == null) stringResource(R.string.epure_all_apps) else label, ui.cfg.layout == "epure") }
+    // Shift the row to align the visible icons with the heading. Use an offset, not negative padding:
+    // on wide slots (especially Cinema / Épure), the inset can exceed BLEED and padding would crash Home.
+    val inset = if (ui.shape == "wide") 0.dp else w * (if (ui.cfg.layout == "epure") 0.25f else if (ui.cfg.layout == "cinema") 0.21f else 0.14f)
     home.grid.chunked(ui.cfg.columns).forEachIndexed { i, row ->
         item("grid$i") {
-            Row(Modifier.padding(start = BLEED - inset, end = BLEED + inset, top = 10.dp, bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(GAP)) {
+            Row(Modifier.offset(x = -inset).padding(horizontal = BLEED, vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(GAP)) {
                 for (app in row) Tile("grid", app, ui, Modifier.width(w), big = false)
             }
         }
@@ -740,15 +986,16 @@ private fun LazyListScope.grid(home: Home, ui: Ui, w: Dp) {
 }
 
 @Composable
-private fun SectionTitle(text: String) {
-    Text(text, color = TEXT, fontSize = 18.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = BLEED, top = 12.dp))
+private fun SectionTitle(text: String, quiet: Boolean = false) {
+    Text(text, color = TEXT.copy(alpha = if (quiet) 0.65f else 1f), fontSize = if (quiet) 16.sp else 18.sp,
+        fontWeight = if (quiet) FontWeight.Normal else FontWeight.Medium, modifier = Modifier.padding(start = BLEED, top = 12.dp))
 }
 
 @Composable
 @OptIn(ExperimentalFoundationApi::class)
 private fun TileRow(section: String, list: List<TvApp>, ui: Ui, w: Dp, big: Boolean, rowSpec: BringIntoViewSpec) {
     val row = @Composable {
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(GAP), contentPadding = PaddingValues(horizontal = BLEED, vertical = 16.dp)) {
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(if (ui.cfg.layout == "epure") 26.dp else if (ui.cfg.layout == "cinema") 22.dp else GAP), contentPadding = PaddingValues(horizontal = BLEED, vertical = if (ui.cfg.layout in setOf("cinema", "epure")) 12.dp else 16.dp)) {
             val tw = if (ui.shape == "wide") w else w * 0.72f
             items(list, key = { it.pkg }) { app -> Tile(section, app, ui, Modifier.width(tw), big) }
         }
@@ -761,19 +1008,19 @@ private fun TileRow(section: String, list: List<TvApp>, ui: Ui, w: Dp, big: Bool
 /** [lifted]: the caller zooms the tile itself with [lift], so the surface doesn't. */
 @Composable
 private fun focusStyle(ui: Ui, shape: Shape, zoom: Float = 1.08f, lifted: Boolean = false) = Triple(
-    ClickableSurfaceDefaults.scale(focusedScale = if (ui.cfg.focus == "none" || (lifted && ui.cfg.focus == "lift")) 1f else zoom),
+    ClickableSurfaceDefaults.scale(focusedScale = if (ui.cfg.focus == "none" || (lifted && ui.cfg.focus == "lift")) 1f else if (ui.cfg.layout == "epure") 1.04f else zoom),
     ClickableSurfaceDefaults.glow(
         focusedGlow = when (ui.cfg.focus) {
-            "glow" -> Glow(ui.accent, 16.dp)
-            "lift" -> Glow(ui.accent.copy(alpha = 0.35f), 16.dp) // a faint halo; the shadow does the lifting
+            "glow" -> Glow(ui.accent.copy(alpha = if (ui.cfg.layout == "epure") 0.08f else if (ui.cfg.layout == "cinema") 0.3f else 1f), if (ui.cfg.layout == "epure") 6.dp else if (ui.cfg.layout == "cinema") 10.dp else 16.dp)
+            "lift" -> Glow(ui.accent.copy(alpha = if (ui.cfg.layout == "epure") 0.08f else 0.35f), if (ui.cfg.layout == "epure") 6.dp else 16.dp)
             else -> Glow.None
         }
     ),
     ClickableSurfaceDefaults.border(
         focusedBorder = when (ui.cfg.focus) {
-            "outline" -> Border(BorderStroke(3.dp, ui.accent), shape = shape)
-            "glow" -> Border(BorderStroke(2.dp, TEXT), shape = shape) // a light ring that reads on any banner
-            "lift" -> Border(BorderStroke(1.dp, Color.White.copy(alpha = 0.28f)), shape = shape)
+            "outline" -> Border(BorderStroke(if (ui.cfg.layout == "epure") 1.5.dp else 3.dp, ui.accent), shape = shape)
+            "glow" -> Border(BorderStroke(if (ui.cfg.layout == "epure") 1.5.dp else 2.dp, TEXT), shape = shape)
+            "lift" -> Border(BorderStroke(if (ui.cfg.layout == "cinema") 2.dp else 1.dp, Color.White.copy(alpha = if (ui.cfg.layout == "cinema") 0.95f else 0.28f)), shape = shape)
             else -> Border.None
         }
     ),
@@ -860,14 +1107,15 @@ private fun Tile(section: String, app: TvApp, ui: Ui, size: Modifier, big: Boole
     val wide = ui.shape == "wide"
     // In the grid and folders each slot keeps its width; a square tile sits in the middle of it.
     val inSlot = section == "grid" || section == "folder"
-    val banner = ui.cfg.iconStyle == "banner"
+    val banner = ui.cfg.iconStyle == "banner" && ui.cfg.layout !in setOf("cinema", "horizon", "epure")
     // Mono glass is see-through, so the Glow focus showed inside the tile too: a focused one gets a solid back.
     val solid = ui.cfg.iconStyle == "mono" && ui.cfg.focus == "glow"
     Column(size, horizontalAlignment = if (wide) Alignment.Start else Alignment.CenterHorizontally) {
         Surface(
             onClick = { launch(ctx, app) },
             onLongClick = { ui.onAppMenu(section, app) },
-            modifier = Modifier.pointer(onLongClick = { ui.onAppMenu(section, app) }) { launch(ctx, app) }.then(ui.focusFor(section, app)).fillMaxWidth(if (!wide && inSlot) 0.72f else 1f).aspectRatio(if (wide) 16f / 9f else 1f)
+            modifier = Modifier.pointer(onLongClick = { ui.onAppMenu(section, app) }) { launch(ctx, app) }.then(ui.focusFor(section, app))
+                .fillMaxWidth(if (!wide && inSlot) { if (ui.cfg.layout == "epure") 0.5f else if (ui.cfg.layout == "cinema") 0.58f else 0.72f } else 1f).aspectRatio(if (wide) 16f / 9f else 1f)
                 .onFocusChanged { focused = it.isFocused; if (it.isFocused) ui.onFocusApp(app) }
                 .lift(ui, shape, focused),
             shape = ClickableSurfaceDefaults.shape(shape), scale = scale, glow = glow, border = border,
@@ -883,7 +1131,9 @@ private fun Tile(section: String, app: TvApp, ui: Ui, size: Modifier, big: Boole
             if (Lock.isLocked(ui.cfg, app.pkg)) LockBadge(Modifier.align(if (ui.shape == "round") Alignment.BottomCenter else Alignment.TopEnd))
         }
         if (ui.cfg.showNames) {
-            Text(app.label, color = TEXT, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = if (wide) TextAlign.Start else TextAlign.Center,
+            Text(app.label, color = TEXT.copy(alpha = if (ui.cfg.layout !in setOf("cinema", "horizon", "epure") || focused) 1f else 0.65f), fontSize = if (ui.cfg.layout in setOf("cinema", "horizon", "epure")) 12.sp else 14.sp,
+                fontWeight = if (ui.cfg.layout in setOf("cinema", "horizon", "epure") && focused) FontWeight.Medium else FontWeight.Normal,
+                maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = if (wide) TextAlign.Start else TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(top = 7.dp, start = 2.dp).graphicsLayer { alpha = nameAlpha })
         }
     }
@@ -935,6 +1185,7 @@ private fun LockBadge(modifier: Modifier) {
  */
 @Composable
 private fun IconTile(app: TvApp, ui: Ui) {
+    if (ui.cfg.layout in setOf("cinema", "horizon", "epure")) { CinemaIcon(app); return }
     val accent = ui.accent
     val ground = Color(ui.cfg.background)
     // A picture icon has no logo to recolour: Mono and Duotone use the letter instead.
@@ -967,6 +1218,30 @@ private fun IconTile(app: TvApp, ui: Ui) {
         } else {
             Text(app.label.take(1).uppercase(), color = letterInk, fontSize = with(androidx.compose.ui.platform.LocalDensity.current) { (minOf(maxWidth, maxHeight) * 0.42f).toSp() }, fontWeight = FontWeight.SemiBold)
         }
+    }
+}
+
+/** Keep brand colours in the round cinema icons, including Netflix's red N on black. */
+@Composable
+private fun CinemaIcon(app: TvApp) {
+    val g = app.glyph
+    val plate = when {
+        app.pkg.contains("youtube") -> Color(0xFFFF0000)
+        app.pkg.contains("spotify") -> Color(0xFF1ED760)
+        app.pkg.contains("amazon") || app.pkg.contains("amzn") -> Color(0xFF0878D1)
+        app.pkg.contains("disney") -> Color(0xFF071B4D)
+        app.pkg.contains("arte") -> Color(0xFFF5EFE6)
+        else -> Color(0xFF171D27)
+    }
+    val filter = when {
+        app.pkg.contains("spotify") -> ColorFilter.tint(Color.Black)
+        app.pkg.contains("youtube") || app.pkg.contains("amazon") || app.pkg.contains("amzn") || app.pkg.contains("disney") -> ColorFilter.tint(Color.White)
+        else -> null
+    }
+    Box(Modifier.fillMaxSize().background(plate), contentAlignment = Alignment.Center) {
+        if (g != null) Image(g.art, app.label, if (g.picture) Modifier.fillMaxSize() else Modifier.fillMaxSize(0.6f),
+            contentScale = if (g.picture) ContentScale.Crop else ContentScale.Fit, colorFilter = if (g.picture) null else filter)
+        else Text(app.label.take(1).uppercase(), color = TEXT, fontSize = 32.sp, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -1032,19 +1307,27 @@ private fun FolderTile(folder: Pair<String, List<TvApp>>, ui: Ui, size: Modifier
 /** What another app is playing, with play/pause and next. Only there while a session has something loaded. */
 @Composable
 private fun NowPlayingCard(t: Track, ui: Ui) {
+    val cinema = ui.cfg.layout in setOf("cinema", "horizon", "epure")
     Row(
-        Modifier.padding(horizontal = BLEED, vertical = 12.dp).width(520.dp).background(PANEL.copy(alpha = 0.88f), RoundedCornerShape(14.dp)).padding(12.dp).focusGroup(),
+        Modifier.padding(horizontal = BLEED, vertical = if (cinema) 8.dp else 12.dp).width(if (cinema) 400.dp else 520.dp)
+            .background(if (cinema) Color(0xB3181D26) else PANEL.copy(alpha = 0.88f), RoundedCornerShape(if (cinema) 16.dp else 14.dp))
+            .then(if (cinema) Modifier.border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp)) else Modifier)
+            .padding(if (cinema) 10.dp else 12.dp).focusGroup(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.size(64.dp).background(TILE, RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(if (cinema) 36.dp else 64.dp).clip(RoundedCornerShape(8.dp)).background(if (cinema) Color(0xFF262C37) else TILE), contentAlignment = Alignment.Center) {
             if (t.art != null) Image(t.art, null, Modifier.fillMaxSize().background(Color.Black, RoundedCornerShape(8.dp)), contentScale = ContentScale.Crop)
-            else Image(Icons.Outlined.MusicNote, null, Modifier.size(28.dp), colorFilter = ColorFilter.tint(MUTED))
+            else Image(Icons.Outlined.MusicNote, null, Modifier.size(if (cinema) 20.dp else 28.dp), colorFilter = ColorFilter.tint(MUTED))
         }
-        Column(Modifier.weight(1f).padding(horizontal = 14.dp)) {
-            Text(t.title, color = TEXT, fontSize = 17.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(listOf(t.artist, t.app).filter { it.isNotBlank() }.joinToString(" · "), color = MUTED, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 3.dp))
+        Column(Modifier.weight(1f).padding(horizontal = if (cinema) 10.dp else 14.dp)) {
+            Text(t.title, color = TEXT, fontSize = if (cinema) 14.sp else 17.sp,
+                lineHeight = if (cinema) 16.sp else androidx.compose.ui.unit.TextUnit.Unspecified,
+                fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(listOf(t.artist, t.app).filter { it.isNotBlank() }.joinToString(" · "), color = MUTED, fontSize = if (cinema) 11.sp else 13.sp,
+                lineHeight = if (cinema) 14.sp else androidx.compose.ui.unit.TextUnit.Unspecified,
+                maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 3.dp))
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(if (cinema) 6.dp else 10.dp)) {
             RoundButton(if (t.playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow, if (t.playing) "Pause" else "Play", ui) { NowPlaying.playPause() }
             RoundButton(Icons.Outlined.SkipNext, "Next", ui) { NowPlaying.next() }
         }
@@ -1103,32 +1386,38 @@ private fun weatherIcon(w: WeatherNow): ImageVector = when (w.code) {
 
 @Composable
 private fun RoundButton(icon: ImageVector, label: String, ui: Ui, onClick: () -> Unit) {
+    val compact = ui.cfg.layout in setOf("cinema", "horizon", "epure")
     val (scale, glow, border) = focusStyle(ui, RoundedCornerShape(50), zoom = 1.12f)
     var focused by remember { mutableStateOf(false) }
     Surface(
         onClick = onClick,
-        modifier = Modifier.pointer(onClick = onClick).size(44.dp).onFocusChanged { focused = it.isFocused },
+        modifier = Modifier.pointer(onClick = onClick).size(if (compact) 32.dp else 44.dp).onFocusChanged { focused = it.isFocused },
         shape = ClickableSurfaceDefaults.shape(CircleShape), scale = scale, glow = glow, border = border,
         colors = ClickableSurfaceDefaults.colors(containerColor = Color.White.copy(alpha = 0.08f), focusedContainerColor = ui.accent.copy(alpha = 0.9f))
     ) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Image(icon, label, Modifier.size(24.dp), colorFilter = ColorFilter.tint(if (focused) onAccent(ui.accent) else TEXT))
+            Image(icon, label, Modifier.size(if (compact) 18.dp else 24.dp), colorFilter = ColorFilter.tint(if (focused) onAccent(ui.accent) else TEXT))
         }
     }
 }
 
 @Composable
-private fun QuickButton(a: QuickAction, ui: Ui, onQuick: (QuickAction) -> Unit) {
+private fun QuickButton(a: QuickAction, ui: Ui, onQuick: (QuickAction) -> Unit, compact: Boolean = false) {
+    val glass = compact && ui.cfg.layout == "cinema"
     val (scale, glow, border) = focusStyle(ui, RoundedCornerShape(50), zoom = 1.12f)
     var focused by remember { mutableStateOf(false) }
     Surface(
         onClick = { onQuick(a) },
-        modifier = Modifier.pointer { onQuick(a) }.size(40.dp).onFocusChanged { focused = it.isFocused },
-        shape = ClickableSurfaceDefaults.shape(CircleShape), scale = scale, glow = glow, border = border,
-        colors = ClickableSurfaceDefaults.colors(containerColor = Color.White.copy(alpha = 0.08f), focusedContainerColor = ui.accent.copy(alpha = 0.9f))
+        modifier = Modifier.pointer { onQuick(a) }.size(if (compact) 32.dp else 40.dp).onFocusChanged { focused = it.isFocused },
+        shape = ClickableSurfaceDefaults.shape(CircleShape),
+        scale = if (glass) ClickableSurfaceDefaults.scale(focusedScale = 1.06f) else scale,
+        glow = if (glass) ClickableSurfaceDefaults.glow() else glow,
+        border = if (glass) ClickableSurfaceDefaults.border(focusedBorder = Border(BorderStroke(1.dp, Color.White.copy(alpha = 0.65f)), shape = CircleShape)) else border,
+        colors = ClickableSurfaceDefaults.colors(containerColor = Color.White.copy(alpha = if (compact) 0f else 0.08f),
+            focusedContainerColor = if (glass) Color.White.copy(alpha = 0.2f) else ui.accent.copy(alpha = 0.9f))
     ) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            QuickGlyph(a, ui, focused, 22.dp)
+            QuickGlyph(a, ui, focused && !glass, if (glass) 16.dp else if (compact) 18.dp else 22.dp)
         }
     }
 }
@@ -1278,6 +1567,10 @@ private fun TimerMenu(ui: Ui, onClose: () -> Unit) {
 /** A folder's apps over a dimmed home screen. Back closes it. */
 @Composable
 private fun FolderOverlay(name: String, list: List<TvApp>, ui: Ui, onClose: () -> Unit) {
+    if (ui.cfg.layout == "cinema") {
+        CinemaAppLibrary(name, list, ui, onClose)
+        return
+    }
     val focus = remember { FocusRequester() }
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Box(Modifier.fillMaxSize().background(scrim(ui.cfg, 0.9f)), contentAlignment = Alignment.Center) {
@@ -1289,6 +1582,50 @@ private fun FolderOverlay(name: String, list: List<TvApp>, ui: Ui, onClose: () -
                         for (app in row) Tile("folder", app, inner, Modifier.width(148.dp), big = false)
                     }
                 }
+            }
+        }
+        LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
+    }
+}
+
+/** A bounded, scrollable application library: long lists stay navigable with the remote. */
+@Composable
+private fun CinemaAppLibrary(name: String, apps: List<TvApp>, ui: Ui, onClose: () -> Unit) {
+    val focus = remember { FocusRequester() }
+    val inner = Ui(ui.cfg.copy(focus = "outline", showNames = true, nameFocus = false), ui.accent, focus,
+        apps.firstOrNull()?.let { "folder:${it.pkg}" }, ui.onFolder, motion = ui.motion, onAppMenu = ui.onAppMenu)
+    Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.68f)), contentAlignment = Alignment.Center) {
+            val shape = RoundedCornerShape(28.dp)
+            Column(Modifier.widthIn(max = 880.dp).fillMaxWidth(0.9f).fillMaxHeight(0.86f)
+                .shadow(24.dp, shape).background(Color(0xFF15171C), shape)
+                .border(1.dp, Color.White.copy(alpha = 0.09f), shape).padding(28.dp)) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(name, color = TEXT, fontSize = 27.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(stringResource(R.string.cinema_library_count, apps.size), color = TEXT.copy(alpha = 0.45f), fontSize = 12.sp)
+                    }
+                    CinemaAction(stringResource(R.string.cinema_library_close), ui, quiet = true,
+                        modifier = if (apps.isEmpty()) Modifier.focusRequester(focus) else Modifier, onClick = onClose)
+                }
+                Spacer(Modifier.height(20.dp))
+                Box(Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.07f)))
+                if (apps.isEmpty()) {
+                    Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Text(stringResource(R.string.cinema_empty_body), color = MUTED, fontSize = 15.sp)
+                    }
+                } else {
+                    LazyVerticalGrid(columns = GridCells.Adaptive(108.dp), modifier = Modifier.weight(1f).fillMaxWidth(),
+                        contentPadding = PaddingValues(vertical = 24.dp, horizontal = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(22.dp)) {
+                        gridItems(apps, key = { it.pkg }) { app ->
+                            Tile("folder", app, inner, Modifier.fillMaxWidth(), big = false)
+                        }
+                    }
+                }
+                Box(Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.07f)))
+                Text(stringResource(R.string.cinema_library_hint), color = TEXT.copy(alpha = 0.4f), fontSize = 11.sp,
+                    modifier = Modifier.padding(top = 16.dp))
             }
         }
         LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
@@ -1318,18 +1655,33 @@ private fun AppMenu(app: TvApp, ui: Ui, onMove: (() -> Unit)?, onClose: () -> Un
         runCatching { ctx.startActivity(i.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }.onFailure { Log.w(TAG, "${app.pkg}: $it") }
     }
     val pkgUri = android.net.Uri.fromParts("package", app.pkg, null)
-    val items = buildList<Pair<String, () -> Unit>> {
-        onMove?.let { add("Move" to it) }
-        add("Hide from Home" to { onClose(); ConfigStore.update(ctx, JSONObject().put("hidden", JSONArray((ui.cfg.hidden + app.pkg).distinct()))) })
-        add("App info" to { open(android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, pkgUri)) })
-        if (installed) add("Uninstall" to { open(android.content.Intent(android.content.Intent.ACTION_DELETE, pkgUri)) })
+    val moveLabel = stringResource(R.string.app_menu_move)
+    val hideLabel = stringResource(R.string.app_menu_hide)
+    val infoLabel = stringResource(R.string.app_menu_info)
+    val uninstallLabel = stringResource(R.string.app_menu_uninstall)
+    val items = buildList<Triple<String, ImageVector, () -> Unit>> {
+        onMove?.let { add(Triple(moveLabel, Icons.Outlined.OpenWith, it)) }
+        add(Triple(hideLabel, Icons.Outlined.VisibilityOff, { onClose(); ConfigStore.update(ctx, JSONObject().put("hidden", JSONArray((ui.cfg.hidden + app.pkg).distinct()))) }))
+        add(Triple(infoLabel, Icons.Outlined.Info, { open(android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, pkgUri)) }))
+        if (installed) add(Triple(uninstallLabel, Icons.Outlined.DeleteOutline, { open(android.content.Intent(android.content.Intent.ACTION_DELETE, pkgUri)) }))
+    }
+    val panel = when (ui.cfg.layout) {
+        "cinema" -> Color(0xFF191B20)
+        "horizon" -> Color(0xFF151D2C)
+        "epure" -> Color(0xFF171719)
+        else -> lerp(Color(0xFF181D19), ui.accent, 0.04f)
+    }
+    val highlight = when (ui.cfg.layout) {
+        "epure" -> Color(0xFFE9E9EC)
+        "horizon" -> Color(0xFFABC9FF)
+        else -> ui.accent
     }
     // The menu opens while OK is still held: that press's repeats and its release would pick Move. Only a
     // press that starts inside the menu counts.
     var fresh by remember { mutableStateOf(false) }
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Box(
-            Modifier.fillMaxSize().background(scrim(ui.cfg, 0.85f)).onPreviewKeyEvent { e ->
+            Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.62f)).onPreviewKeyEvent { e ->
                 when {
                     e.key !in OK_KEYS -> false
                     e.type == KeyEventType.KeyDown && e.nativeKeyEvent.repeatCount == 0 -> { fresh = true; false }
@@ -1338,22 +1690,42 @@ private fun AppMenu(app: TvApp, ui: Ui, onMove: (() -> Unit)?, onClose: () -> Un
             },
             contentAlignment = Alignment.Center
         ) {
-            Column(Modifier.width(360.dp).background(PANEL, RoundedCornerShape(16.dp)).padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(app.label, color = TEXT, fontSize = 22.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(bottom = 6.dp))
-                items.forEachIndexed { i, (label, act) ->
-                    val shape = RoundedCornerShape(12.dp)
-                    val (scale, glow, border) = focusStyle(ui, shape, zoom = 1.03f)
+            val panelShape = RoundedCornerShape(if (ui.cfg.layout == "epure") 18.dp else 26.dp)
+            Column(Modifier.width(390.dp).shadow(28.dp, panelShape).background(panel, panelShape)
+                .border(1.dp, Color.White.copy(alpha = 0.1f), panelShape).padding(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(Modifier.fillMaxWidth().padding(start = 8.dp, top = 6.dp, bottom = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Box(Modifier.size(48.dp).clip(RoundedCornerShape(14.dp)).background(Color.White.copy(alpha = 0.05f)), contentAlignment = Alignment.Center) {
+                        Image(app.art, null, Modifier.size(36.dp), contentScale = ContentScale.Fit)
+                    }
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(app.label, color = TEXT, fontSize = 21.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(stringResource(R.string.app_menu_subtitle), color = TEXT.copy(alpha = 0.5f), fontSize = 12.sp)
+                    }
+                }
+                Box(Modifier.fillMaxWidth().padding(horizontal = 8.dp).height(1.dp).background(Color.White.copy(alpha = 0.07f)))
+                Spacer(Modifier.height(4.dp))
+                items.forEachIndexed { i, (label, icon, act) ->
+                    val shape = RoundedCornerShape(14.dp)
+                    val destructive = icon == Icons.Outlined.DeleteOutline
+                    val actionColour = if (destructive) Color(0xFFFFAAA7) else highlight
                     Surface(
                         onClick = act,
-                        modifier = Modifier.pointer { act() }.then(if (i == 0) Modifier.focusRequester(focus) else Modifier).fillMaxWidth().height(50.dp),
-                        shape = ClickableSurfaceDefaults.shape(shape), scale = scale, glow = glow, border = border,
-                        colors = ClickableSurfaceDefaults.colors(containerColor = TILE, focusedContainerColor = menuFocus(ui))
+                        modifier = Modifier.pointer { act() }.then(if (i == 0) Modifier.focusRequester(focus) else Modifier).fillMaxWidth().height(52.dp),
+                        shape = ClickableSurfaceDefaults.shape(shape),
+                        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.015f),
+                        glow = ClickableSurfaceDefaults.glow(),
+                        border = ClickableSurfaceDefaults.border(focusedBorder = Border(BorderStroke(1.dp, actionColour.copy(alpha = 0.65f)), shape = shape)),
+                        colors = ClickableSurfaceDefaults.colors(containerColor = Color.Transparent, focusedContainerColor = lerp(panel, actionColour, 0.13f))
                     ) {
-                        Box(Modifier.fillMaxSize().padding(horizontal = 18.dp), contentAlignment = Alignment.CenterStart) {
-                            Text(label, color = TEXT, fontSize = 17.sp)
+                        Row(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                            Image(icon, null, Modifier.size(20.dp), colorFilter = ColorFilter.tint(actionColour))
+                            Text(label, color = if (destructive) actionColour else TEXT, fontSize = 15.sp)
                         }
                     }
                 }
+                Text(stringResource(R.string.app_menu_back), color = TEXT.copy(alpha = 0.38f), fontSize = 11.sp,
+                    modifier = Modifier.padding(start = 10.dp, top = 10.dp, bottom = 3.dp))
             }
         }
         LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }

@@ -167,7 +167,7 @@ export interface HomeStatus {
   googleKept?: boolean
 }
 
-export type HomeLayout = 'shelf' | 'split' | 'rail'
+export type HomeLayout = 'shelf' | 'split' | 'rail' | 'cinema' | 'horizon' | 'epure'
 export type HomeSection = 'nowplaying' | 'recent' | 'dock' | 'rows' | 'folders' | 'grid'
 export type QuickId = 'settings' | 'wifi' | 'inputs' | 'bluetooth' | 'display' | 'apps' | 'sleep' | 'search' | 'music' | 'panel' | 'themes' | 'fireplace' | 'memory' | 'customize' | 'timer'
 /** A saved look for the day and night switch. */
@@ -210,7 +210,7 @@ export interface HomeConfig {
   /** Quick-settings icons and app shortcuts, in order. Up to 6 app shortcuts. */
   quick: QuickEntry[]
   /** The owner's own names for top bar buttons and the All apps title (launcher 1.7.5, #67). Empty keeps the English. */
-  names: Partial<Record<QuickId | 'all_apps', string>>
+  names: Partial<Record<QuickId | 'all_apps' | 'brand', string>>
   rows: HomeGroup[]
   folders: HomeGroup[]
   /** Percent, 60 to 150. */
@@ -314,6 +314,8 @@ export interface HomeConfig {
   clock: 'time_date' | 'time' | 'off'
   /** A name for "Good evening, …"; empty for none. */
   greeting: string
+  /** Header wordmark in Cinema, Horizon and Épure; names.brand customises its text. */
+  show_brand: boolean
   /** Minutes without a button press before Home shows only the wallpaper and clock, 0 (off) to 60. */
   idle_minutes: number
   /** Weather next to the clock; off while blank. */
@@ -511,7 +513,7 @@ export interface CytvApi {
 
   // CleanMyTV Home
   /** Give Home back to the stock launcher, leaving CleanMyTV Home installed. */
-  useStockLauncher(): Promise<ApplyResult>
+  useStockLauncher(removeHome?: boolean): Promise<ApplyResult>
   /** Launchers the owner installed that could be Home instead (#82). */
   otherLaunchers(): Promise<string[]>
   /** Makes one of those Home, leaving CleanMyTV Home installed. */

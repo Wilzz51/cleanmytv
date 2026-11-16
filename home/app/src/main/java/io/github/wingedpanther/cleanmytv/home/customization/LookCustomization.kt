@@ -137,7 +137,9 @@ fun LookCustomization(config: HomeConfig, ctx: Context) {
         }
 
         // --- 4. Icon Style & App Labels ---
-        TvRadioGroup(
+        if (config.layout in setOf("cinema", "horizon", "epure")) {
+            Alert(text = androidx.compose.ui.res.stringResource(io.github.wingedpanther.cleanmytv.home.R.string.round_layout_icons_note), modifier = Modifier.fillMaxWidth())
+        } else TvRadioGroup(
             title = "App icons",
             options = listOf("banner" to "App Banner", "colour" to "Vector Brand Color", "mono" to "Monochrome", "duo" to "Duotone"),
             current = config.iconStyle,
@@ -167,7 +169,7 @@ fun LookCustomization(config: HomeConfig, ctx: Context) {
         }
 
         // --- 5. Tile Shape & Sizes ---
-        TvRadioGroup(
+        if (config.layout !in setOf("cinema", "horizon", "epure")) TvRadioGroup(
             title = "Tile shape",
             options = listOf("wide" to "Wide (16:9)", "square" to "Square (1:1)", "squircle" to "Squircle", "round" to "Round"),
             current = config.tileShape,

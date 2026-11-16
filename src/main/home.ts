@@ -29,14 +29,14 @@ export const DEFAULTS: HomeConfig = {
   lock_on: false, lock_apps: [], lock_system: false, lock_for: 'sleep', lock_show: 'badge',
   fire_wall: false, fire_sound: true, fire_wall_sound: false, fire_volume: 40, fire_timer: 0,
   slide_minutes: 0, slide_from: 'mine', other_apps: false, live_tv: true,
-  clock: 'time_date', greeting: '', names: {}, idle_minutes: 0,
+  clock: 'time_date', greeting: '', show_brand: true, names: {}, idle_minutes: 0,
   weather_place: '', weather_lat: 0, weather_lon: 0, weather_unit: 'c', memory: false,
   day_night: false, day_at: 7 * 60, night_at: 19 * 60,
   visualiser: true, viz_style: 'bars', viz_bars: 32, viz_height: 12, viz_opacity: 85, viz_colour: 'accent', viz_peaks: true, viz_sensitivity: 100
 }
 
 const CHOICES = {
-  layout: ['shelf', 'split', 'rail'],
+  layout: ['shelf', 'split', 'rail', 'cinema', 'horizon', 'epure'],
   focus: ['lift', 'glow', 'outline', 'none'],
   clock: ['time_date', 'time', 'off'],
   viz_style: ['bars', 'mirror', 'wave'],
@@ -74,7 +74,7 @@ const RANGES = {
   shade_top: [0, 100], shade_top_reach: [0, 100], shade_bottom: [0, 100], shade_bottom_reach: [0, 100], wash: [0, 100], wash_reach: [10, 100]
 } as const
 
-const BOOLS = ['show_names', 'name_focus', 'follow_colour', 'pin_focus', 'tilt', 'intro', 'lock_on', 'lock_system', 'fire_wall', 'fire_sound', 'fire_wall_sound', 'other_apps', 'live_tv', 'visualiser', 'viz_peaks', 'buttons_on', 'memory', 'day_night', 'power_on_input', 'edit_on_tv', 'bing_daily', 'theme_memory', 'lock_editor', 'update_check'] as const
+const BOOLS = ['show_brand', 'show_names', 'name_focus', 'follow_colour', 'pin_focus', 'tilt', 'intro', 'lock_on', 'lock_system', 'fire_wall', 'fire_sound', 'fire_wall_sound', 'other_apps', 'live_tv', 'visualiser', 'viz_peaks', 'buttons_on', 'memory', 'day_night', 'power_on_input', 'edit_on_tv', 'bing_daily', 'theme_memory', 'lock_editor', 'update_check'] as const
 const KEY_SERVICE = `${HOME_PKG}/${HOME_PKG}.KeyService`
 /** Lets the launcher see other apps' media sessions; on only while the Now playing section is. */
 const NOW_LISTENER = `${HOME_PKG}/${HOME_PKG}.NowPlayingListener`
@@ -359,9 +359,9 @@ export function clean(o: Record<string, unknown>, lenient = false): Partial<Home
   if (o.names !== undefined) {
     const v = o.names
     const ok = v && typeof v === 'object' && !Array.isArray(v) &&
-      Object.entries(v).every(([k, s]) => ((QUICK as readonly string[]).includes(k) || k === 'all_apps') && typeof s === 'string')
+      Object.entries(v).every(([k, s]) => ((QUICK as readonly string[]).includes(k) || k === 'all_apps' || k === 'brand') && typeof s === 'string')
     if (ok) out.names = Object.fromEntries(Object.entries(v as Record<string, string>).map(([k, s]) => [k, plain(s, 24)]).filter(([, s]) => s !== ''))
-    else bad(`names must map ${QUICK.join(', ')} or all_apps to text`)
+    else bad(`names must map ${QUICK.join(', ')}, all_apps or brand to text`)
   }
   if (o.limits !== undefined) {
     const v = o.limits

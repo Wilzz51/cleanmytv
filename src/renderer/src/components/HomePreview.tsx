@@ -1,6 +1,7 @@
 import { t as tr } from '../lib/i18n'
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import type { HomeConfig, QuickEntry, QuickId, TvApp } from '@shared/api'
+import drawnIcons from '../../../../home/app/src/main/assets/drawn_icons.json'
 
 // The launcher lays out in dp on a 960x540 screen; the preview draws at that size and scales to fit.
 const W = 960
@@ -76,10 +77,15 @@ function model(apps: TvApp[], cfg: HomeConfig) {
   return { dock, grid, rows, folders }
 }
 
-function Tile({ app, w, names, focused, cfg }: { app: TvApp; w: number; names: boolean; focused?: boolean; cfg: HomeConfig }): ReactNode {
+function Tile({ app, w, names, focused, cfg, onSelect, inSlot = false }: { app: TvApp; w: number; names: boolean; focused?: boolean; cfg: HomeConfig; onSelect?: (app: TvApp) => void; inSlot?: boolean }): ReactNode {
+  const cinema = ['cinema', 'horizon', 'epure'].includes(cfg.layout)
+  const brand = (drawnIcons as Record<string, { path?: string; hex?: string }>)[app.pkg]
+  const cinemaBack = app.pkg.includes('youtube') ? '#FF0000' : app.pkg.includes('spotify') ? '#1ED760'
+    : /amazon|amzn/.test(app.pkg) ? '#0878D1' : app.pkg.includes('disney') ? '#071B4D' : app.pkg.includes('arte') ? '#F5EFE6' : '#171D27'
+  const cinemaInk = app.pkg.includes('spotify') ? '#000' : /youtube|amazon|amzn|disney/.test(app.pkg) ? '#fff' : brand?.hex ?? '#fff'
   const ring: CSSProperties = focused
     ? cfg.focus === 'glow'
-      ? { boxShadow: `0 0 0 2px #F0EBE5, 0 0 16px 4px ${cfg.accent}`, transform: 'scale(1.08)' }
+      ? { boxShadow: `0 0 0 ${cfg.layout === 'epure' ? '1.5px' : '2px'} #F0EBE5, 0 0 ${cfg.layout === 'epure' ? '4px 0' : cinema ? '10px 2px' : '16px 4px'} ${cfg.accent}${cinema ? '4d' : ''}`, transform: cfg.layout === 'epure' ? 'scale(1.04)' : 'scale(1.08)' }
       : cfg.focus === 'outline'
         ? { outline: `3px solid ${cfg.accent}`, outlineOffset: 0, transform: 'scale(1.08)' }
         : cfg.focus === 'lift'
@@ -88,18 +94,21 @@ function Tile({ app, w, names, focused, cfg }: { app: TvApp; w: number; names: b
     : {}
   // The icon styles: square, squircle or round tiles, a little narrower; the logo shows on the TV, the
   // preview draws the first letter in its place.
-  const icons = cfg.icon_style !== 'banner'
-  const shape = icons ? cfg.tile_shape : 'wide'
-  const side = shape === 'wide' ? w : w * 0.72
+  const icons = cfg.icon_style !== 'banner' || cinema
+  const shape = cinema ? 'round' : icons ? cfg.tile_shape : 'wide'
+  const side = cfg.layout === 'horizon' ? w : shape === 'wide' ? w : w * (cfg.layout === 'epure' && inSlot ? 0.5 : cinema && inSlot ? 0.58 : 0.72)
   const radius = shape === 'round' ? '50%' : shape === 'squircle' ? '32%' : shape === 'square' ? '22%' : 10
   const fill = cfg.icon_style === 'mono' ? `rgba(255,255,255,${(cfg.tile_glass ?? 10) / 100})` : cfg.icon_style === 'duo' ? `color-mix(in srgb, ${cfg.background} 70%, ${cfg.accent})` : '#2D3A2E'
   const ink = cfg.icon_style === 'mono' || cfg.icon_style === 'duo' ? `color-mix(in srgb, ${cfg.accent} 65%, white)` : '#F0EBE5'
   return (
-    <div style={{ width: side, flex: 'none' }}>
-      <div style={{ height: shape === 'wide' ? (w * 9) / 16 : side, borderRadius: radius, background: fill, display: 'grid', placeItems: 'center', color: ink, fontWeight: icons ? 600 : 500, fontSize: icons && shape !== 'wide' ? side * 0.4 : Math.max(12, w / 11), padding: '0 8px', textAlign: 'center', lineHeight: 1.15, overflow: 'hidden', ...ring }}>
-        {tr(icons ? app.label.charAt(0).toUpperCase() : app.label)}
+    <div style={{ width: side, flex: 'none', cursor: onSelect ? 'pointer' : undefined }} data-preview-app={app.pkg}
+      tabIndex={onSelect ? 0 : undefined} role={onSelect ? 'button' : undefined} aria-label={onSelect ? tr('Preview {0}', [app.label]) : undefined}
+      aria-pressed={onSelect ? !!focused : undefined} onMouseEnter={() => onSelect?.(app)} onFocus={() => onSelect?.(app)} onClick={() => onSelect?.(app)}
+      onKeyDown={(e) => { if (onSelect && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onSelect(app) } }}>
+      <div style={{ height: shape === 'wide' ? (w * 9) / 16 : side, borderRadius: radius, background: cinema ? cinemaBack : fill, display: 'grid', placeItems: 'center', color: ink, fontWeight: icons ? 600 : 500, fontSize: icons && shape !== 'wide' ? side * 0.4 : Math.max(12, w / 11), padding: cinema ? 0 : '0 8px', textAlign: 'center', lineHeight: 1.15, overflow: 'hidden', ...ring }}>
+        {cinema && brand?.path ? <svg viewBox="0 0 24 24" width="60%" height="60%" aria-hidden><path d={brand.path} fill={cinemaInk} /></svg> : icons ? app.label.charAt(0).toUpperCase() : app.label}
       </div>
-      {names && <div style={{ visibility: focused || !cfg.name_focus ? 'visible' : 'hidden', marginTop: 6, fontSize: 14, color: '#F0EBE5', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: shape === 'wide' ? 'left' : 'center' }}>{app.label}</div>}
+      {names && <div style={{ visibility: focused || !cfg.name_focus ? 'visible' : 'hidden', marginTop: 7, fontSize: cinema ? 12 : 14, fontWeight: cinema && focused ? 500 : 400, color: cinema && !focused ? 'rgba(240,235,229,.65)' : '#F0EBE5', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: shape === 'wide' ? 'left' : 'center' }}>{app.label}</div>}
     </div>
   )
 }
@@ -119,14 +128,16 @@ function Folder({ name, apps, w }: { name: string; apps: TvApp[]; w: number }): 
   )
 }
 
-function Title({ children }: { children: ReactNode }): ReactNode {
-  return <div style={{ fontSize: 18, color: '#F0EBE5', fontWeight: 500, margin: '12px 0 4px' }}>{tr(children)}</div>
+function Title({ children, quiet = false }: { children: ReactNode; quiet?: boolean }): ReactNode {
+  return <div style={{ fontSize: quiet ? 16 : 18, color: quiet ? 'rgba(240,235,229,.65)' : '#F0EBE5', fontWeight: quiet ? 400 : 500, margin: '12px 0 4px' }}>{tr(children)}</div>
 }
 
-function Sections({ apps, cfg, width, dockW, showFolders = true }: { apps: TvApp[]; cfg: HomeConfig; width: number; dockW: number; showFolders?: boolean }): ReactNode {
+function Sections({ apps, cfg, width, dockW, showFolders = true, selectedPackage, onSelect }: { apps: TvApp[]; cfg: HomeConfig; width: number; dockW: number; showFolders?: boolean; selectedPackage?: string; onSelect?: (app: TvApp) => void }): ReactNode {
+  const compact = ['cinema', 'horizon', 'epure'].includes(cfg.layout)
+  const quiet = cfg.layout === 'epure'
   const m = model(apps, cfg)
   const gridW = (width - GAP * (cfg.columns - 1)) / cfg.columns
-  const rowW = 148 * (cfg.tile_scale / 100)
+  const rowW = (quiet ? 88 : compact ? 104 : 148) * (cfg.tile_scale / 100)
   let focused = false
   const focusOnce = (): boolean => (focused ? false : (focused = true))
   return (
@@ -135,14 +146,15 @@ function Sections({ apps, cfg, width, dockW, showFolders = true }: { apps: TvApp
         // A stand-in: on the TV the card shows only while an app has something playing.
         if (s === 'nowplaying')
           return (
-            <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 14, width: 520, padding: 12, margin: '8px 0', borderRadius: 14, background: 'rgba(45,58,46,0.88)' }}>
-              <div style={{ width: 64, height: 64, borderRadius: 8, background: '#3A4A3B', flex: 'none' }} />
+            <div key={s} data-preview-player style={{ display: 'flex', alignItems: 'center', gap: compact ? 10 : 14, width: compact ? 400 : 520, padding: compact ? 10 : 12, margin: '8px 0', borderRadius: compact ? 16 : 14,
+              border: compact ? '1px solid rgba(255,255,255,.08)' : undefined, background: compact ? 'rgba(24,29,38,.7)' : 'rgba(45,58,46,0.88)' }}>
+              <div style={{ width: compact ? 36 : 64, height: compact ? 36 : 64, borderRadius: 8, background: compact ? '#262C37' : '#3A4A3B', flex: 'none', display: 'grid', placeItems: 'center' }}>{compact ? '♫' : null}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 17, fontWeight: 500 }}>{tr("What's playing")}</div>
-                <div style={{ fontSize: 13, color: '#D7CFC4', marginTop: 3 }}>{tr("Artist · App, while something plays")}</div>
+                <div style={{ fontSize: compact ? 14 : 17, lineHeight: compact ? '16px' : undefined, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tr("What's playing")}</div>
+                <div style={{ fontSize: compact ? 11 : 13, lineHeight: compact ? '14px' : undefined, color: '#D7CFC4', marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tr("Artist · App, while something plays")}</div>
               </div>
               {['❚❚', '▸▸'].map((g) => (
-                <div key={g} style={{ width: 44, height: 44, borderRadius: 22, background: 'rgba(255,255,255,0.08)', display: 'grid', placeItems: 'center', fontSize: 13 }}>{tr(g)}</div>
+                <div key={g} style={{ width: compact ? 32 : 44, height: compact ? 32 : 44, flex: 'none', borderRadius: 22, background: 'rgba(255,255,255,0.08)', display: 'grid', placeItems: 'center', fontSize: compact ? 11 : 13 }}>{tr(g)}</div>
               ))}
             </div>
           )
@@ -150,31 +162,35 @@ function Sections({ apps, cfg, width, dockW, showFolders = true }: { apps: TvApp
         if (s === 'recent')
           return (
             <div key={s}>
-              <Title>{tr("Recently used")}</Title>
-              <div style={{ display: 'flex', gap: GAP, padding: '6px 0' }}>
-                {[...m.grid, ...m.dock].slice(0, 5).map((a) => <Tile key={a.pkg} app={a} w={rowW} names={cfg.show_names} focused={false} cfg={cfg} />)}
+              <Title quiet={quiet}>{tr("Recently used")}</Title>
+              <div style={{ display: 'flex', gap: quiet ? 26 : compact ? 22 : GAP, padding: '6px 0' }}>
+                {[...m.grid, ...m.dock].slice(0, 5).map((a) => <Tile key={a.pkg} app={a} w={rowW} names={cfg.show_names} focused={false} cfg={cfg} onSelect={onSelect} />)}
               </div>
             </div>
           )
         if (s === 'dock' && m.dock.length)
           return (
-            <div key={s} style={{ display: 'flex', gap: GAP, padding: '8px 0' }}>
-              {m.dock.map((a, i) => <Tile key={a.pkg} app={a} w={dockW * (cfg.dock_scale / 100)} names={cfg.show_names} focused={i === 0 && focusOnce()} cfg={cfg} />)}
+            <div key={s}>
+              {compact && <Title quiet={quiet}>{tr('Your applications')}</Title>}
+              <div style={{ display: 'flex', gap: quiet ? 26 : compact ? 22 : GAP, padding: '8px 0' }}>
+                {m.dock.map((a, i) => <Tile key={a.pkg} app={a} w={dockW * (cfg.dock_scale / 100)} names={cfg.show_names}
+                  focused={compact ? a.pkg === selectedPackage : i === 0 && focusOnce()} cfg={cfg} onSelect={onSelect} />)}
+              </div>
             </div>
           )
         if (s === 'rows')
           return m.rows.map((r, ri) => (
             <div key={`row${ri}`}>
-              <Title>{r.name}</Title>
-              <div style={{ display: 'flex', gap: GAP, padding: '6px 0' }}>
-                {r.apps.map((a, i) => <Tile key={a.pkg} app={a} w={rowW} names={cfg.show_names} focused={ri === 0 && i === 0 && focusOnce()} cfg={cfg} />)}
+              <Title quiet={quiet}>{r.name}</Title>
+              <div style={{ display: 'flex', gap: quiet ? 26 : compact ? 22 : GAP, padding: '6px 0' }}>
+                {r.apps.map((a, i) => <Tile key={a.pkg} app={a} w={rowW} names={cfg.show_names} focused={compact ? false : ri === 0 && i === 0 && focusOnce()} cfg={cfg} onSelect={onSelect} />)}
               </div>
             </div>
           ))
         if (s === 'folders' && showFolders && m.folders.length)
           return (
             <div key={s}>
-              <Title>{tr("Folders")}</Title>
+              <Title quiet={quiet}>{tr("Folders")}</Title>
               <div style={{ display: 'flex', gap: GAP, padding: '6px 0' }}>
                 {m.folders.map((f) => <Folder key={f.name} name={f.name} apps={f.apps} w={rowW} />)}
               </div>
@@ -183,9 +199,9 @@ function Sections({ apps, cfg, width, dockW, showFolders = true }: { apps: TvApp
         if (s === 'grid' && m.grid.length)
           return (
             <div key={s}>
-              <Title>{tr(cfg.names.all_apps || (m.dock.length || m.rows.length ? 'All apps' : 'Apps'))}</Title>
+              <Title quiet={quiet}>{tr(cfg.names.all_apps || (quiet ? 'All applications' : m.dock.length || m.rows.length ? 'All apps' : 'Apps'))}</Title>
               <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cfg.columns}, ${gridW}px)`, gap: `14px ${GAP}px`, padding: '6px 0' }}>
-                {m.grid.map((a, i) => <Tile key={a.pkg} app={a} w={gridW} names={cfg.show_names} focused={i === 0 && focusOnce()} cfg={cfg} />)}
+                {m.grid.map((a, i) => <Tile key={a.pkg} app={a} w={gridW} names={cfg.show_names} focused={compact ? a.pkg === selectedPackage : i === 0 && focusOnce()} cfg={cfg} onSelect={onSelect} inSlot />)}
               </div>
             </div>
           )
@@ -228,6 +244,14 @@ const greetingText = (cfg: HomeConfig): string | null => (cfg.greeting.trim() ? 
 export function HomePreview({ apps, cfg }: { apps: TvApp[]; cfg: HomeConfig }): ReactNode {
   const box = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(0.5)
+  const [selectedPackage, setSelectedPackage] = useState<string | null>(null)
+  const cinemaApps = model(apps, cfg)
+  const visible = [...cinemaApps.dock, ...cinemaApps.grid, ...cinemaApps.rows.flatMap((r) => r.apps)]
+  const selected = visible.find((a) => a.pkg === selectedPackage) ?? visible[0]
+  const selectedBrand = selected ? (drawnIcons as Record<string, { hex?: string }>)[selected.pkg]?.hex : undefined
+  const ambient = selected?.pkg.includes('youtube') ? '#FF0033' : selected?.pkg.includes('netflix') ? '#E50914'
+    : /amazon|amzn/.test(selected?.pkg ?? '') ? '#159EFF' : selected?.pkg.includes('disney') ? '#2563EB'
+    : selected?.pkg.includes('spotify') ? '#1ED760' : selected?.pkg.includes('twitch') ? '#9146FF' : selectedBrand ?? '#6F7785'
   useEffect(() => {
     const el = box.current
     if (!el) return
@@ -249,7 +273,93 @@ export function HomePreview({ apps, cfg }: { apps: TvApp[]; cfg: HomeConfig }): 
       : cfg.background
   }
   let body: ReactNode
-  if (cfg.layout === 'split') {
+  if (cfg.layout === 'epure') {
+    body = (
+      <div data-epure-preview style={{ height: '100%', padding: `${SAFE_Y}px ${SAFE_X}px 0`, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, minHeight: 38 }}>
+          {cfg.show_brand !== false && <span data-home-brand style={{ opacity: 0.45, letterSpacing: 2, fontSize: 12, fontWeight: 500, maxWidth: 180, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cfg.names.brand?.trim() || 'CLEANMYTV'}</span>}
+          <div style={{ flex: 1 }} />
+          <span style={{ fontSize: 13 }}>{tr('Applications')}</span>
+          {quick.slice(0, 4).map((q) => <QuickMark key={q} q={q} apps={apps} size={18} />)}
+          <Clock cfg={{ ...cfg, weather_place: '', memory: false }} size={19} dateSize={11} align="right" />
+        </div>
+        <div style={{ height: 1, margin: '14px 0 19px', background: 'rgba(255,255,255,.06)' }} />
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 14 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 26, fontWeight: 300, letterSpacing: -0.5 }}>{tr('Your space')}</div>
+            <div style={{ fontSize: 12, opacity: 0.4, marginTop: 5 }}>{tr('Apps and favourites. Simply.')}</div>
+          </div>
+          <div style={{ textAlign: 'right', fontSize: 12, color: '#D7CFC4' }}>
+            {cfg.weather_place && <div>☁ 14° &nbsp; {cfg.weather_place}</div>}
+            {cfg.memory && <div style={{ fontSize: 11, marginTop: 4 }}>{tr('▦ 1.4 of 2 GB free')}</div>}
+          </div>
+        </div>
+        <Sections apps={apps} cfg={cfg} width={W - SAFE_X * 2} dockW={88} selectedPackage={selected?.pkg} onSelect={(app) => setSelectedPackage(app.pkg)} />
+      </div>
+    )
+  } else if (cfg.layout === 'horizon') {
+    const dock = cfg.sections.includes('dock') ? cinemaApps.dock : []
+    body = (
+      <div data-horizon-preview style={{ height: '100%', position: 'relative', overflow: 'hidden', background: 'radial-gradient(ellipse at 50% 35%, rgba(115,165,255,.13), transparent 75%)' }}>
+        <div style={{ position: 'absolute', top: '62%', left: 0, right: 0, height: 1, background: 'linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent)' }} />
+        <div style={{ position: 'absolute', left: SAFE_X, right: SAFE_X, top: SAFE_Y, display: 'flex', alignItems: 'center', gap: 16, height: 40 }}>
+          {cfg.show_brand !== false && <span data-home-brand style={{ fontSize: 15, fontWeight: 500, opacity: 0.7, maxWidth: 140, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cfg.names.brand?.trim() || 'CleanMyTV'}</span>}
+          <div style={{ flex: 1, display: 'flex', gap: 16, overflow: 'hidden', whiteSpace: 'nowrap', fontSize: 13 }}>
+            <span>{tr('Applications')}</span>
+            {cfg.sections.includes('rows') && cinemaApps.rows.map((r, i) => <span key={`row${i}`}>{r.name}</span>)}
+            {cfg.sections.includes('folders') && cinemaApps.folders.map((f, i) => <span key={`folder${i}`}>{f.name}</span>)}
+            {cfg.sections.includes('recent') && <span>{tr('Recently used')}</span>}
+          </div>
+          {quick.slice(0, 4).map((q) => <QuickMark key={q} q={q} apps={apps} size={18} />)}
+        </div>
+        <div style={{ position: 'absolute', left: SAFE_X + 12, right: SAFE_X, top: 130, display: 'flex', alignItems: 'center' }}>
+          <div style={{ flex: 1 }}>
+            {cfg.clock === 'off' ? <div style={{ fontSize: 44, fontWeight: 300 }}>{tr('Welcome home')}</div> : <Clock cfg={cfg} size={72} dateSize={14} align="left" />}
+            {greet && <div style={{ marginTop: 12, fontSize: 17 }}>{greet}</div>}
+          </div>
+          {cfg.sections.includes('nowplaying') && <div style={{ width: 400 }}><Sections apps={apps} cfg={{ ...cfg, layout: 'cinema', sections: ['nowplaying'] }} width={400} dockW={104} /></div>}
+        </div>
+        {dock.length > 0 && (
+          <div data-horizon-dock style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: SAFE_Y + (cfg.visualiser ? 64 : 20), display: 'flex', gap: 20,
+            padding: '18px 20px', borderRadius: 28, background: 'rgba(26,30,39,.83)', border: '1px solid rgba(255,255,255,.09)', width: 'max-content', maxWidth: W - SAFE_X * 2, overflow: 'hidden' }}>
+            {dock.map((a) => <Tile key={a.pkg} app={a} w={64 * cfg.dock_scale / 100} names={cfg.show_names} cfg={cfg} focused={a.pkg === selected?.pkg} onSelect={(app) => setSelectedPackage(app.pkg)} />)}
+          </div>
+        )}
+        {dock.length > 0 && <div style={{ position: 'absolute', left: 0, right: 0, bottom: SAFE_Y, textAlign: 'center', opacity: 0.4, fontSize: 11 }}>{tr('Hold OK on an app to organise your dock')}</div>}
+      </div>
+    )
+  } else if (cfg.layout === 'cinema') {
+    body = (
+      <div style={{ height: '100%', padding: `${SAFE_Y}px ${SAFE_X}px 0`, overflow: 'hidden', position: 'relative', background: 'linear-gradient(0deg, rgba(8,11,17,.4), transparent 65%), linear-gradient(90deg, rgba(8,11,17,.27), transparent)' }}>
+        <div className="cinema-ambient" data-cinema-ambient style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.14, backgroundColor: ambient, maskImage: 'radial-gradient(ellipse at 18% 42%, black, transparent 70%)' }} />
+        <div style={{ position: 'relative', height: '100%' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20, height: 44 }}>
+          {cfg.show_brand !== false && <b data-home-brand style={{ fontSize: 16, fontWeight: 600, color: 'rgba(240,235,229,.8)', maxWidth: 160, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cfg.names.brand?.trim() || 'CleanMyTV'}</b>}
+          <div style={{ display: 'flex', alignItems: 'center', padding: 5, gap: 4, borderRadius: 30, border: '1px solid rgba(255,255,255,.06)', background: 'rgba(255,255,255,.07)', fontSize: 13 }}>
+            <span style={{ borderRadius: 24, padding: '9px 15px', background: 'rgba(255,255,255,.13)' }}>{tr('Home')}</span>
+            <span style={{ padding: '9px 16px' }}>{tr('Applications')}</span>
+            {cinemaApps.dock.length > 0 && <span style={{ padding: '9px 16px' }}>{tr('Favourites')}</span>}
+          </div>
+          <div style={{ flex: 1 }} />
+          {quick.length > 0 && <div style={{ display: 'flex', alignItems: 'center', gap: 2, padding: '5px 7px', maxWidth: 240, overflow: 'hidden', flexShrink: 0, borderRadius: 50, background: 'rgba(255,255,255,.09)', border: '1px solid rgba(255,255,255,.07)' }}>
+            {quick.map((q) => <span key={q} style={{ width: 32, height: 32, display: 'grid', placeItems: 'center', flexShrink: 0 }}><QuickMark q={q} apps={apps} size={16} /></span>)}
+          </div>}
+          <Clock cfg={{ ...cfg, clock: cfg.clock === 'off' ? 'off' : 'time', weather_place: '', memory: false }} size={19} dateSize={12} align="right" />
+        </div>
+        <div style={{ height: 208, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start' }}>
+          <div style={{ color: 'rgba(240,235,229,.65)', fontSize: 11, fontWeight: 500, letterSpacing: 1.5 }}>{tr('SELECTED APP')}</div>
+          <div data-cinema-title style={{ fontSize: (selected?.label.length ?? 0) > 22 ? 36 : 48, lineHeight: '51px', fontWeight: 500, letterSpacing: -1, marginTop: 10, maxWidth: '70%', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{selected?.label ?? tr('Your applications')}</div>
+          <div style={{ fontSize: 12, marginTop: 10, color: 'rgba(240,235,229,.65)' }}>{tr(selected ? 'Hold OK on an app to organise it.' : 'Choose which apps to show in the settings.')}</div>
+          <div style={{ display: 'flex', gap: 10, marginTop: 16, fontSize: 13, fontWeight: 500 }}>
+            {selected && <span style={{ padding: '9px 16px', background: '#F0EBE5', color: '#10141D', borderRadius: 24 }}>▶ &nbsp; {tr('Open')}</span>}
+            <span style={{ padding: '9px 16px', background: 'rgba(255,255,255,.08)', borderRadius: 24 }}>☰ &nbsp; {tr(cfg.edit_on_tv ? 'Customize' : 'Quick settings')}</span>
+          </div>
+        </div>
+        <Sections apps={apps} cfg={cfg} width={W - SAFE_X * 2} dockW={104} selectedPackage={selected?.pkg} onSelect={(app) => setSelectedPackage(app.pkg)} />
+        </div>
+      </div>
+    )
+  } else if (cfg.layout === 'split') {
     body = (
       <div style={{ display: 'flex', height: '100%', background: `linear-gradient(90deg, ${shade(cfg, 70)}, transparent 60%)` }}>
         <div style={{ width: W * 0.32, padding: `${SAFE_Y + 24}px 0 ${SAFE_Y + 48}px ${SAFE_X}px`, display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -321,7 +431,7 @@ export function HomePreview({ apps, cfg }: { apps: TvApp[]; cfg: HomeConfig }): 
   return (
     <div ref={box} className="home-preview" style={{ height: H * scale }} aria-label={tr("Preview of the TV home screen")}>
       <div style={{ width: W, height: H, transform: `scale(${scale})`, transformOrigin: '0 0', color: '#F0EBE5', fontFamily: PREVIEW_FONT[cfg.font] ?? PREVIEW_FONT.default, ...ground }}>{tr(body)}</div>
-      <span className="home-preview-note">{tr("Sample time and greeting · app art shows on the TV")}</span>
+      <span className="home-preview-note">{tr(['cinema', 'horizon', 'epure'].includes(cfg.layout) ? 'Hover or focus an app to preview it · sample time' : 'Sample time and greeting · app art shows on the TV')}</span>
     </div>
   )
 }

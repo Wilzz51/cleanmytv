@@ -64,7 +64,7 @@ export function installMock(): void {
     order: [], hidden: [], dock_size: 5, columns: 6, show_names: true, name_focus: false, follow_colour: false, pin_focus: false, tilt: false,
     icon_style: 'banner', tile_shape: 'wide', tile_glass: 10, intro: true, wallpaper_from: '',
     lock_on: false, lock_apps: [], lock_system: false, lock_for: 'sleep', lock_show: 'badge', fire_wall: false, fire_sound: true, fire_wall_sound: false, fire_volume: 40, fire_timer: 0, slide_minutes: 0, slide_from: 'mine', other_apps: false, live_tv: true, slides_on_tv: 0, fire_on_tv: false, lock_pin_set: false, themes_on_tv: 0, can_change_settings: true,
-    clock: 'time_date', greeting: '', names: {}, idle_minutes: 0,
+    clock: 'time_date', greeting: '', show_brand: true, names: {}, idle_minutes: 0,
     weather_place: 'Dublin', weather_lat: 53.3331, weather_lon: -6.2489, weather_unit: 'c', memory: false, day_night: false, day_at: 420, night_at: 1140, looks_saved: [],
     visualiser: true, viz_style: 'bars', viz_bars: 32, viz_height: 12, viz_opacity: 85, viz_colour: 'accent', viz_peaks: true, viz_sensitivity: 100,
     has_wallpaper: false
@@ -276,9 +276,10 @@ export function installMock(): void {
       log('restore', 'ok', 'Restored the recorded state')
       return ok('Put back the state recorded before the first change.')
     },
-    async useStockLauncher() {
+    async useStockLauncher(removeHome) {
       launcherHome = false
       homeIsHome = false
+      if (removeHome) homeInstalled = false
       return ok('Home belongs to com.google.android.apps.tv.launcherx again.')
     },
     async keepGoogleLauncher(on) {

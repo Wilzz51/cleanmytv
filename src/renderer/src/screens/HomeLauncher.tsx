@@ -44,6 +44,7 @@ export function HomeLauncher({ markDone, refreshTvs, status, homeSeen, openTab }
   const [result, setResult] = useState<ApplyResult | null>(null)
   const [saving, setSaving] = useState(false)
   const [askStock, setAskStock] = useState(false)
+  const [removeHome, setRemoveHome] = useState(false)
   const [stockPick, setStockPick] = useState<StockPick | null>(null)
   const [themeUsed, setThemeUsed] = useState<string | null>(null)
   const [themeBackup, setThemeBackup] = useState<ThemeBackup | null>(null)
@@ -285,7 +286,7 @@ export function HomeLauncher({ markDone, refreshTvs, status, homeSeen, openTab }
             <div className="notice warn">{tr("The TV has CleanMyTV Home ")}{home.versionName}{tr("; this app carries ")}{tr(home.bundledVersion)}{tr(". Press Update and use below to change its layout, apps, look and remote buttons from here. The other tabs open after that.")}</div>
           )}
           {tab === 'overview' && (
-            <Overview home={home} busy={!!busy} busyText={busy} run={run} askStock={() => setAskStock(true)} host={status.host} onShot={refreshTvs} />
+            <Overview home={home} busy={!!busy} busyText={busy} run={run} askStock={() => { setRemoveHome(false); setAskStock(true) }} host={status.host} onShot={refreshTvs} />
           )}
           {ready && tab === 'apps' && apps && <AppsTab apps={apps} cfg={cfg} set={set} />}
           {ready && tab === 'layout' && apps && <LayoutTab apps={apps} cfg={cfg} set={set} />}
@@ -323,15 +324,16 @@ export function HomeLauncher({ markDone, refreshTvs, status, homeSeen, openTab }
 
       {askStock && (
         <Confirm
-          title={tr("Use the stock launcher again?")}
+          title={tr("Return to the original TV home screen?")}
           confirmLabel={tr("Switch back")}
           onConfirm={() => {
             setAskStock(false)
-            run('Giving Home back to the stock launcher', () => window.cytv.useStockLauncher())
+            run('Giving Home back to the stock launcher', () => window.cytv.useStockLauncher(removeHome))
           }}
           onCancel={() => setAskStock(false)}
         >
-          <p>{tr("The app switches the TV's own launcher back on and makes it Home. CleanMyTV Home stays installed, so you can switch again.")}</p>
+          <p>{tr("The app restores the TV's original home screen. Leave the option below off to keep CleanMyTV Home and its settings for later.")}</p>
+          <Toggle label="Also uninstall CleanMyTV Home" hint="Removes the TV launcher and its settings after restoring the original home screen. Your other apps stay installed." checked={removeHome} onChange={setRemoveHome} />
         </Confirm>
       )}
     </>
@@ -446,8 +448,8 @@ function Overview(props: { home: HomeStatus; busy: boolean; run: (label: string,
           {home.installed && !home.isHome && (
             <button className="btn primary" disabled={busy} onClick={() => run('Switching Home to CleanMyTV Home', () => window.cytv.useHome(), (s) => window.cytv.useHome(s))}>{tr("Use CleanMyTV Home")}</button>
           )}
-          {home.isHome && (
-            <button className="btn" disabled={busy} onClick={props.askStock}>{tr("Give Home back to the stock launcher")}</button>
+          {home.installed && (
+            <button className="btn" disabled={busy} onClick={props.askStock}>{tr("Return to the original TV home screen")}</button>
           )}
           {home.isHome && home.googleLauncher && (
             <button className="btn ghost" disabled={busy} onClick={() => run(home.googleKept ? "Switching Google TV's launcher off" : "Keeping Google TV's launcher on", () => window.cytv.keepGoogleLauncher(!home.googleKept))}>
@@ -642,6 +644,9 @@ function Groups(props: { kind: 'rows' | 'folders'; title: string; hint: string; 
 }
 
 const LAYOUTS: { id: HomeLayout; label: string; hint: string; mini: [number, number, number, number, boolean][] }[] = [
+  { id: 'epure', label: 'Épure', hint: 'A quiet dark canvas, compact icons and a clean app library.', mini: [[6, 6, 22, 4, true], [70, 6, 24, 4, true], [6, 21, 35, 8, true], [6, 42, 88, 13, false], [6, 66, 88, 25, true]] },
+  { id: 'horizon', label: 'Horizon', hint: 'A large clock, a centred dock and a separate app drawer.', mini: [[6, 7, 28, 5, true], [72, 7, 22, 5, true], [9, 31, 37, 22, false], [57, 37, 34, 12, true], [19, 77, 62, 15, false]] },
+  { id: 'cinema', label: 'Cinema', hint: 'Immersive wallpaper, round app icons and your favourites.', mini: [[6, 6, 50, 5, true], [6, 20, 48, 18, true], [6, 54, 88, 16, false], [6, 80, 88, 10, true]] },
   { id: 'shelf', label: 'Shelf', hint: 'Top bar, open space, apps lower down.', mini: [[6, 6, 30, 6, true], [64, 6, 30, 6, true], [6, 40, 88, 24, false], [6, 72, 88, 18, true]] },
   { id: 'split', label: 'Split', hint: 'Clock and quick settings on the left, apps on the right.', mini: [[6, 10, 26, 18, true], [6, 62, 20, 24, true], [38, 8, 56, 26, false], [38, 42, 56, 18, true]] },
   { id: 'rail', label: 'Rail', hint: 'Icons down the left edge that open with labels.', mini: [[3, 6, 6, 84, true], [70, 6, 24, 8, true], [16, 24, 78, 28, false], [16, 60, 78, 18, true]] }
@@ -698,7 +703,9 @@ function LayoutTab({ apps, cfg, set }: { apps: TvApp[]; cfg: HomeConfig; set: Se
         <h2>{tr("Layout")}</h2>
         <div className="layout-pick">
           {LAYOUTS.map((l) => (
-            <button key={l.id} className={cfg.layout === l.id ? 'on' : ''} onClick={() => set({ layout: l.id })} aria-pressed={cfg.layout === l.id}>
+            <button key={l.id} className={cfg.layout === l.id ? 'on' : ''} onClick={() => set(l.id === 'cinema' && !['cinema', 'horizon', 'epure'].includes(cfg.layout)
+              ? { layout: l.id, accent: '#FFB23C', background: '#111214', focus: 'glow', show_names: true, name_focus: false, dock_size: 7, sections: ['dock', ...cfg.sections.filter((s) => s !== 'dock')] }
+              : { layout: l.id })} aria-pressed={cfg.layout === l.id}>
               <span className="mini" aria-hidden>
                 {l.mini.map(([x, y, w, h, dim], i) => (
                   <i key={i} className={dim ? 'dim' : ''} style={{ left: `${x}%`, top: `${y}%`, width: `${w}%`, height: `${h}%` }} />
@@ -714,7 +721,21 @@ function LayoutTab({ apps, cfg, set }: { apps: TvApp[]; cfg: HomeConfig; set: Se
             <Slider label={tr("Space above the apps")} hint={tr("Open wallpaper between the top bar and the first row.")} value={cfg.top_space} min={0} max={40} unit="%" onChange={(v) => set({ top_space: v }, 250)} />
           </div>
         )}
+        {cfg.layout === 'horizon' && <p className="small muted" style={{ marginTop: 14 }}>{tr('Horizon keeps the clock and dock on the home screen. Open your other apps, rows and folders from the top bar.')}</p>}
       </div>
+
+      {['cinema', 'horizon', 'epure'].includes(cfg.layout) && (
+        <div className="card">
+          <h2>{tr('Header text')}</h2>
+          <Toggle label={tr('Show header text')} checked={cfg.show_brand !== false} onChange={(show_brand) => set({ show_brand })} />
+          <label className="field" style={{ marginTop: 12, maxWidth: 400 }}>
+            <span>{tr('Custom header text')}</span>
+            <input type="text" maxLength={24} aria-label={tr('Custom header text')} placeholder="CleanMyTV" disabled={cfg.show_brand === false}
+              value={cfg.names.brand ?? ''} onChange={(e) => set({ names: { ...cfg.names, brand: e.target.value } }, 700)} />
+            <span className="hint">{tr('Leave empty for CleanMyTV. Hiding the text keeps your custom name.')}</span>
+          </label>
+        </div>
+      )}
 
       <div className="grid-2">
         <div className="card">
@@ -1045,7 +1066,7 @@ function LookTab(props: { cfg: HomeConfig; set: SetFn; busy: boolean; wallpaper:
         <p className="muted">{tr("Banners are each app's own TV picture. The other styles redraw every app's logo the same way, so the rows match.")}</p>
         <div className="seg">
           {([['banner', 'Banners'], ['colour', 'Colour'], ['mono', 'Mono'], ['duo', 'Duotone']] as const).map(([id, label]) => (
-            <button key={id} className={cfg.icon_style === id ? 'on' : ''} onClick={() => set({ icon_style: id })}>
+            <button key={id} disabled={['cinema', 'horizon', 'epure'].includes(cfg.layout)} className={cfg.icon_style === id ? 'on' : ''} onClick={() => set({ icon_style: id })}>
               {tr(label)}
             </button>
           ))}
@@ -1061,12 +1082,14 @@ function LookTab(props: { cfg: HomeConfig; set: SetFn; busy: boolean; wallpaper:
         <p style={{ margin: '14px 0 8px', fontWeight: 600 }}>{tr("Tile shape")}</p>
         <div className="seg">
           {([['wide', 'Wide'], ['square', 'Square'], ['squircle', 'Squircle'], ['round', 'Round']] as const).map(([id, label]) => (
-            <button key={id} className={cfg.icon_style !== 'banner' && cfg.tile_shape === id ? 'on' : ''} disabled={cfg.icon_style === 'banner'} onClick={() => set({ tile_shape: id })}>
+            <button key={id} className={['cinema', 'horizon', 'epure'].includes(cfg.layout) ? id === 'round' ? 'on' : '' : cfg.icon_style !== 'banner' && cfg.tile_shape === id ? 'on' : ''} disabled={cfg.icon_style === 'banner' || ['cinema', 'horizon', 'epure'].includes(cfg.layout)} onClick={() => set({ tile_shape: id })}>
               {tr(label)}
             </button>
           ))}
         </div>
-        {cfg.icon_style === 'banner' && <p className="small muted">{tr("Pick Colour, Mono or Duotone to change the shape. Banners stay wide.")}</p>}
+        {['cinema', 'horizon', 'epure'].includes(cfg.layout)
+          ? <p className="small muted">{tr('Cinema, Horizon and Épure use round brand icons. Choose Shelf, Split or Rail to change their style or shape.')}</p>
+          : cfg.icon_style === 'banner' && <p className="small muted">{tr("Pick Colour, Mono or Duotone to change the shape. Banners stay wide.")}</p>}
         {cfg.icon_style === 'mono' && (
           <Slider label={tr("Glass")} hint={tr("How much the tile behind each logo shows. Lower lets more of the wallpaper through.")} value={cfg.tile_glass} min={0} max={60} unit="%" onChange={(v) => set({ tile_glass: v }, 250)} />
         )}

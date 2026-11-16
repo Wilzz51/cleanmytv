@@ -1,5 +1,56 @@
 # CleanMyTV
 
+**Home 1.11.9:** Cinema opens applications and folders in a charcoal library panel with a bounded,
+scrollable adaptive grid, compact round icons, visible names, a close action and remote hints. App
+launching and long-press options use the existing actions.
+
+**Home 1.11.8:** refreshed application context menu with an app header, action icons, a restrained
+remote focus outline and French labels. Cinema, Horizon and Épure use matching charcoal, navy and
+neutral palettes; the other layouts keep their accent. Long-press protection and system-app removal
+restrictions remain in place.
+
+**Home 1.11.7:** fixes a grid crash when changing layouts or using wide icon slots. Icon alignment now
+uses a horizontal offset with non-negative padding, preserving the spacing without closing Home.
+
+**Restore the original home screen:** in Home screen → Overview, choose Return to the original TV
+home screen. It is available whenever CleanMyTV Home is installed, even if it is not the current
+default. The confirmation optionally uninstalls CleanMyTV Home and its TV settings; other apps stay
+installed. Removal only runs after the original home is restored and a replacement is verified.
+Leave that option off to keep your launcher settings and switch back later. This is a desktop change;
+rebuild the PC application to use it, without rebuilding the TV APK.
+
+**Header text (Home 1.11.6+):** in Layout, Cinema, Horizon and Épure can show a custom header name
+(up to 24 characters) or hide it entirely. Clearing the name restores CleanMyTV; hiding it preserves
+the custom name for later. The same controls are available in the TV editor under Layout. It changes
+only the TV wordmark, not the application's name. This preference stays when changing layouts.
+
+**Épure layout (Home 1.11.5+):** a restrained library view with a small clock, compact round brand
+icons, thin separators and a compact media card. There is no hero, automatic wallpaper or colour wash.
+The existing section order, folders, hidden apps, app locks and chosen wallpaper are preserved. Select
+Épure, Horizon or Cinema in Layout; switching among these three changes the layout only.
+
+**Horizon layout (Home 1.11.4+):** choose Horizon in Home screen → Layout, or in the TV editor, for a
+large clock and a centred floating dock. Applications, enabled app rows, folders and recent apps open
+from the top bar in the regular lock-aware app drawer. Weather, memory and the compact media card
+follow their existing switches. Hiding the dock or clock is supported. Switching between Horizon and
+Cinema changes the layout only: the app order, groups, lock settings, colours and sizes are retained.
+Shelf, Split and Rail remain available too.
+
+**Cinema layout:** in Home screen → Layout, choose Cinema for a dark anthracite background, compact
+round app icons and seven favourites. The selected app adds a subtle colour glow with a slow transition
+(instant when the TV's animations are disabled). Your own wallpaper still works; a mountain photo is
+no longer added automatically. It also appears in the TV editor. Apps, hidden apps, rows and folders stay yours. The preset moves
+the dock first and applies an amber accent, a dark background, glow focus and visible app names.
+Other sections keep their relative order. Returning to Shelf, Split or Rail keeps your current look;
+Cinema does not overwrite the icon style or shape used by those layouts. The launcher must be
+updated to 1.11.3 or later (Home screen → Update and use). Cinema has a floating navigation bar and a
+spotlight that follows the focused app, with a direct Open action that respects app locks. If that app
+exposes an active media session, its real title can appear in the spotlight and its artwork in the compact
+400 dp Now playing card (36 dp artwork and 32 dp controls) while Now
+playing is enabled. It does not read Netflix/YouTube watch history or require new permissions.
+Cinema shows actual apps and available now-playing information; it does not
+invent streaming recommendations or watch-history cards.
+
 The desktop app supports **English and French**. On first launch it follows the computer's language
 (French for `fr`, English otherwise). Use **Language / Langue** at the bottom of the sidebar to switch
 instantly; the choice is saved on this computer. This changes the desktop interface only, not the TV

@@ -314,11 +314,32 @@ export async function useOther(pkg: string): Promise<ApplyResult> {
   return result
 }
 
+/** Only remove our launcher once a working replacement owns Home. */
+export async function removeHome(): Promise<ApplyResult> {
+  const { installed } = await T.packageSets()
+  if (!installed.has(HOME_PKG)) return { ok: true, summary: 'CleanMyTV Home is not installed on this TV.', warnings: [] }
+  const current = await T.homeComponent()
+  if (!current || OUR_LAUNCHERS.some((pkg) => current.startsWith(pkg + '/')) || current.startsWith('android/') || NOT_LAUNCHERS.some((pkg) => current.startsWith(pkg + '/'))) {
+    return { ok: false, summary: 'CleanMyTV Home was kept because no replacement home screen could be verified.', warnings: [] }
+  }
+  await dropServices(HOME_PKG)
+  const screensavers = (await T.tv().shell('settings get secure screensaver_components')).trim()
+  if (screensavers.split(',').some((c) => c.startsWith(HOME_PKG + '/'))) {
+    const rest = screensavers.split(',').filter((c) => !c.startsWith(HOME_PKG + '/') && /^[A-Za-z_][\w.]*\/[\w.]+$/.test(c))
+    await T.sh(TASK, rest.length ? `settings put secure screensaver_components ${rest.join(',')}` : 'settings delete secure screensaver_components')
+  }
+  const out = await T.sh(TASK, `pm uninstall ${HOME_PKG}`)
+  return out.includes('Success')
+    ? { ok: true, summary: 'The original TV home screen is restored and CleanMyTV Home is uninstalled.', warnings: [] }
+    : { ok: false, summary: 'The original TV home screen is restored, but CleanMyTV Home could not be uninstalled.', warnings: [out.trim()] }
+}
+
 export async function useStock(): Promise<ApplyResult> {
   const { installed } = await T.packageSets()
   // Fire OS never gave Home away; CleanMyTV Home only stops coming back in front of Amazon's.
   if (installed.has(FIRE_LAUNCHER)) {
     await dropServices(HOME_PKG)
+    await T.sh(TASK, 'input keyevent 3').catch(() => '')
     return { ok: true, summary: "Amazon's home screen stays in front now. CleanMyTV Home stays installed; use it again from the Home screen step.", warnings: [] }
   }
   const stock = stockOnTv(installed)
@@ -331,6 +352,7 @@ export async function useStock(): Promise<ApplyResult> {
     await T.sh(TASK, `pm enable --user 0 ${SETUPWRAITH}`)
     rememberWraith(false)
   }
+  if (ok) await T.sh(TASK, 'input keyevent 3').catch(() => '')
   return ok
     ? { ok, summary: `${stock} is Home again. CleanMyTV Home stays installed; use it again from the Home screen step.`, warnings: [] }
     : { ok, summary: `Could not make ${stock} Home. Pick it in the TV's home settings.`, warnings: [] }
